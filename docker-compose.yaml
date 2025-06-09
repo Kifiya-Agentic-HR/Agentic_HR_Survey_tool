@@ -1,0 +1,56 @@
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: db
+    restart: always
+    environment:
+      POSTGRES_USER: hr_admin
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: hr_survey
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # minio:
+  #   image: minio/minio
+  #   container_name: minio
+  #   restart: always
+  #   environment:
+  #     MINIO_ACCESS_KEY: minioadmin
+  #     MINIO_SECRET_KEY: minioadmin123
+  #   volumes:
+  #     - minio_data:/data
+  #   ports:
+  #     - "9000:9000"
+  #     - "9001:9001"
+  #   command: server /data --console-address ":9001"
+
+  backend:
+    build:
+      context: ./backend
+    container_name: fastapi_backend
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      # - minio
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nextjs_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  # minio_data:
