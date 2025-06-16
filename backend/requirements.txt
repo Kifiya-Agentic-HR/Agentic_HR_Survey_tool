@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+pandas
+numpy
+python-multipart
+openpyxl
+xlrd
+python-jose[cryptography]
+python-dotenv
+sqlalchemy
+psycopg2-binary
+bcrypt
+pyjwt
+email-validator
