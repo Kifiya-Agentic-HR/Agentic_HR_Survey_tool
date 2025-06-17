@@ -13,8 +13,10 @@ import {
   Settings,
   ChevronRight,
   TrendingUp,
+  RefreshCcw,
   Users,
   FileText,
+  BarChart,
   Search
 } from 'lucide-react';
 import { authService, User as UserType } from '@/lib/auth';
@@ -87,12 +89,7 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="space-y-8">
           {/* Welcome Section */}
-          <div className="text-center space-y-4">
-            <h2 className="text-4xl font-bold text-gray-900">Welcome back, {user.first_name}!</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Choose from our powerful analytics tools to uncover insights and drive data-driven decisions
-            </p>
-          </div>
+          
 
           {/* Main Navigation Cards */}
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -215,12 +212,24 @@ export default function DashboardPage() {
           <div className="grid md:grid-cols-3 gap-6 mt-16">
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardHeader>
-                <Search className="h-8 w-8 text-orange-500 mx-auto mb-2" />
-                <CardTitle>Search Beyond the Surface</CardTitle>
+                <RefreshCcw className="h-8 w-8 text-orange-500 mx-auto mb-2" />
+                <CardTitle>Turn Feedback into Action.</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">
-                  Uncover hidden patterns and insights buried deep within your data using advanced AI algorithms.
+                  Identify key issues and implement data-driven improvements with real-time insights from employee feedback.
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card className="text-center hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <BarChart className="h-8 w-8 text-orange-500 mx-auto mb-2" />
+                <CardTitle>See What Drives Engagement at Every Level.</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Discover the top motivators and blockers across teams, departments, and roles to build a more engaged workforce.
                 </p>
               </CardContent>
             </Card>
@@ -228,23 +237,11 @@ export default function DashboardPage() {
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardHeader>
                 <Users className="h-8 w-8 text-orange-500 mx-auto mb-2" />
-                <CardTitle>Empowering Human Decisions</CardTitle>
+                <CardTitle>Get clear, visual insights into morale, satisfaction, and workplace culture</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">
-                  Transform complex data into actionable insights that drive informed decision-making across your organization.
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="text-center hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <Settings className="h-8 w-8 text-orange-500 mx-auto mb-2" />
-                <CardTitle>Private by Design</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  Built with privacy and security at its core, ensuring your sensitive data remains protected and confidential.
+                  Explore intuitive charts and dashboards that reveal how your team feels and how your culture is evolving over time.
                 </p>
               </CardContent>
             </Card>
