@@ -144,6 +144,11 @@ export default function CrossTabulation({ datasetInfo }: CrossTabulationProps) {
     }
   };
 
+  useEffect(() => {
+  fetchCrossTabulation();
+}, []);
+
+
   const calculateRowTotal = (row: any) => {
     return crossTabData?.columns.reduce((sum, col) => {
       const value = row[col];

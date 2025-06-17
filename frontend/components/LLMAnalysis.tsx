@@ -176,6 +176,10 @@ export default function LLMAnalysis({ datasetInfo }: LLMAnalysisProps) {
     }
   };
 
+  useEffect(() => {
+  fetchLLMAnalysis();
+  }, []);
+
   const exportToPDF = async () => {
     if (!tabContentRef.current) {
       alert('No content to export.');
@@ -396,7 +400,7 @@ export default function LLMAnalysis({ datasetInfo }: LLMAnalysisProps) {
                             key={quoteIndex}
                             className="text-sm italic text-gray-600 border-l-4 border-blue-200 pl-3"
                           >
-                            "{quote}"
+                            {quote}
                           </blockquote>
                         ))}
                       </div>

@@ -78,7 +78,7 @@ export default function ExitInterviewPage() {
               <Bot className="h-16 w-16 mx-auto opacity-80" />
               <h3 className="text-2xl font-bold">AI Chat System Coming Soon</h3>
               <p className="text-green-100 max-w-2xl mx-auto">
-                We're building an advanced conversational AI that will conduct natural, empathetic exit interviews. 
+                We&apos;re building an advanced conversational AI that will conduct natural, empathetic exit interviews. 
                 The system will analyze responses in real-time and provide actionable insights.
               </p>
               <div className="flex items-center justify-center space-x-2 text-green-100">
@@ -157,7 +157,7 @@ export default function ExitInterviewPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 text-center">
-                  Adaptable conversation flows that can be tailored to your organization's specific needs and culture.
+                  Adaptable conversation flows that can be tailored to your organization&apos;s specific needs and culture.
                 </p>
               </CardContent>
             </Card>
@@ -168,7 +168,7 @@ export default function ExitInterviewPage() {
             <h3 className="text-2xl font-bold text-gray-900">Ready to Transform Your Exit Interviews?</h3>
             <p className="text-gray-600 max-w-2xl mx-auto">
               Join our early access program to be among the first to experience the future of exit interviews. 
-              We'll notify you as soon as the AI chat system is ready for testing.
+              We&apos;ll notify you as soon as the AI chat system is ready for testing.
             </p>
             <div className="flex items-center justify-center space-x-4">
               <Button size="lg" className="bg-green-600 hover:bg-green-700">
