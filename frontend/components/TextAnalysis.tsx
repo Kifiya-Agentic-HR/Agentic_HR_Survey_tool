@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,6 +30,8 @@ import {
   Clock
 } from 'lucide-react';
 import { authService } from '@/lib/auth';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 const API_BASE_URL = 'http://localhost:8000';
 
 interface WordData {
@@ -63,6 +65,7 @@ export default function TextAnalysis() {
   const [selectedQuestion, setSelectedQuestion] = useState<string>('');
   const [viewMode, setViewMode] = useState<'overview' | 'detailed'>('overview');
   const [selectedResponse, setSelectedResponse] = useState<string>('');
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchAnalysis();
@@ -111,7 +114,61 @@ export default function TextAnalysis() {
       default: return '#6B7280';
     }
   };
+  const exportToPDF = async () => {
+  if (!contentRef.current) return;
 
+  try {
+    // Create a new PDF instance
+    const pdf = new jsPDF('p', 'pt', 'a4');
+    const width = pdf.internal.pageSize.getWidth();
+    const height = pdf.internal.pageSize.getHeight();
+    {/*
+    // Add title and date to the PDF
+    pdf.setFontSize(20);
+    pdf.text('Summary of The Survey', width / 2, 40, { align: 'center' });
+    pdf.setFontSize(12);
+    pdf.text(`Generated on: ${new Date().toLocaleDateString()}`, width / 2, 60, { align: 'center' });
+    */}
+    // Capture the content as canvas
+    const canvas = await html2canvas(contentRef.current, {
+      scale: 2, // Higher quality
+      useCORS: true,
+      allowTaint: true,
+      scrollY: -window.scrollY
+    });
+
+    // Calculate the aspect ratio to fit the content properly
+    const imgData = canvas.toDataURL('image/png');
+    const imgWidth = width - 40; // Margin of 20 on each side
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let position = 80; // Start position after title
+    const pageHeight = height - 100; // Leave some margin at bottom
+
+    // Add content to PDF, splitting across pages if needed
+    if (imgHeight < pageHeight) {
+      pdf.addImage(imgData, 'PNG', 20, position, imgWidth, imgHeight);
+    } else {
+      let remainingHeight = imgHeight;
+      while (remainingHeight > 0) {
+        pdf.addImage(imgData, 'PNG', 20, position, imgWidth, imgHeight);
+        remainingHeight -= pageHeight;
+        position -= pageHeight;
+
+        if (remainingHeight > 0) {
+          pdf.addPage();
+          position = 20; // Reset position for new page
+        }
+      }
+    }
+
+    // Save the PDF
+    pdf.save('tesx-analysis-report.pdf');
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    alert('Failed to generate PDF. Please try again.');
+  }
+};
   const renderOverview = () => {
     if (!data) return null;
 
@@ -445,7 +502,7 @@ export default function TextAnalysis() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={contentRef}>
       {/* Header with Controls */}
       <div className="flex items-center justify-between">
         <div>
@@ -475,6 +532,10 @@ export default function TextAnalysis() {
           >
             <Search className="h-4 w-4 mr-2" />
             Overview
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportToPDF}>
+            <Download className="h-4 w-4 mr-2" />
+            Export PDF
           </Button>
         </div>
       </div>

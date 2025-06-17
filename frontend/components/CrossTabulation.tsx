@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertCircle, Download, GitBranch, TrendingUp, BarChart3 } from 'lucide-react';
+import { AlertCircle, Download, GitBranch, TrendingUp, BarChart3, } from 'lucide-react';
 import { authService } from '@/lib/auth';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -42,9 +44,10 @@ export default function CrossTabulation({ datasetInfo }: CrossTabulationProps) {
   const [error, setError] = useState<string | null>(null);
   const [question1, setQuestion1] = useState<string>('');
   const [question2, setQuestion2] = useState<string>('');
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const mcQuestions = datasetInfo.mc_column_names;
-
+ 
   useEffect(() => {
     // Set default questions
     if (mcQuestions.length >= 2) {
@@ -58,6 +61,62 @@ export default function CrossTabulation({ datasetInfo }: CrossTabulationProps) {
       fetchCrossTabulation();
     }
   }, [question1, question2]);
+
+  const exportToPDF = async () => {
+  if (!contentRef.current) return;
+
+  try {
+    // Create a new PDF instance
+    const pdf = new jsPDF('p', 'pt', 'a4');
+    const width = pdf.internal.pageSize.getWidth();
+    const height = pdf.internal.pageSize.getHeight();
+
+    // Add title and date to the PDF
+    pdf.setFontSize(20);
+    pdf.text('Summary of The Survey', width / 2, 40, { align: 'center' });
+    pdf.setFontSize(12);
+    pdf.text(`Generated on: ${new Date().toLocaleDateString()}`, width / 2, 60, { align: 'center' });
+
+    // Capture the content as canvas
+    const canvas = await html2canvas(contentRef.current, {
+      scale: 2, // Higher quality
+      useCORS: true,
+      allowTaint: true,
+      scrollY: -window.scrollY
+    });
+
+    // Calculate the aspect ratio to fit the content properly
+    const imgData = canvas.toDataURL('image/png');
+    const imgWidth = width - 40; // Margin of 20 on each side
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let position = 80; // Start position after title
+    const pageHeight = height - 100; // Leave some margin at bottom
+
+    // Add content to PDF, splitting across pages if needed
+    if (imgHeight < pageHeight) {
+      pdf.addImage(imgData, 'PNG', 20, position, imgWidth, imgHeight);
+    } else {
+      let remainingHeight = imgHeight;
+      while (remainingHeight > 0) {
+        pdf.addImage(imgData, 'PNG', 20, position, imgWidth, imgHeight);
+        remainingHeight -= pageHeight;
+        position -= pageHeight;
+
+        if (remainingHeight > 0) {
+          pdf.addPage();
+          position = 20; // Reset position for new page
+        }
+      }
+    }
+
+    // Save the PDF
+    pdf.save('cross-tab-analysis-report.pdf');
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    alert('Failed to generate PDF. Please try again.');
+  }
+};
 
   const fetchCrossTabulation = async () => {
     if (!question1 || !question2 || question1 === question2) return;
@@ -167,7 +226,7 @@ export default function CrossTabulation({ datasetInfo }: CrossTabulationProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={contentRef}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -176,10 +235,10 @@ export default function CrossTabulation({ datasetInfo }: CrossTabulationProps) {
             Analyze relationships between multiple choice questions
           </p>
         </div>
-        <Button variant="outline" size="sm" disabled={!crossTabData}>
-          <Download className="h-4 w-4 mr-2" />
-          Export Results
-        </Button>
+         <Button variant="outline" size="sm" onClick={exportToPDF}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export PDF
+                </Button>
       </div>
 
       {/* Question Selection */}

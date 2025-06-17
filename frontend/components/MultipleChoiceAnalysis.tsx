@@ -32,7 +32,6 @@ import {
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import PptxGenJS from 'pptxgenjs';
 import { authService } from '@/lib/auth';
 const API_BASE_URL = 'http://localhost:8000';
 

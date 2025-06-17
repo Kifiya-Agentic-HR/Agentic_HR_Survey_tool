@@ -1,12 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Users, FileText, BarChart3, TrendingUp, AlertCircle } from 'lucide-react';
+import { Users, FileText, BarChart3, TrendingUp, AlertCircle, Download, } from 'lucide-react';
 import { authService } from '@/lib/auth';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+
+
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -30,6 +35,7 @@ export default function SummaryDashboard() {
   const [stats, setStats] = useState<SummaryStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchSummaryStats();
@@ -54,7 +60,61 @@ export default function SummaryDashboard() {
       setLoading(false);
     }
   };
+const exportToPDF = async () => {
+  if (!contentRef.current) return;
 
+  try {
+    // Create a new PDF instance
+    const pdf = new jsPDF('p', 'pt', 'a4');
+    const width = pdf.internal.pageSize.getWidth();
+    const height = pdf.internal.pageSize.getHeight();
+    {/*
+    // Add title and date to the PDF
+    pdf.setFontSize(20);
+    pdf.text('Summary of The Survey', width / 2, 40, { align: 'center' });
+    pdf.setFontSize(12);
+    pdf.text(`Generated on: ${new Date().toLocaleDateString()}`, width / 2, 60, { align: 'center' });
+    */}
+    // Capture the content as canvas
+    const canvas = await html2canvas(contentRef.current, {
+      scale: 2, // Higher quality
+      useCORS: true,
+      allowTaint: true,
+      scrollY: -window.scrollY
+    });
+
+    // Calculate the aspect ratio to fit the content properly
+    const imgData = canvas.toDataURL('image/png');
+    const imgWidth = width - 40; // Margin of 20 on each side
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let position = 80; // Start position after title
+    const pageHeight = height - 100; // Leave some margin at bottom
+
+    // Add content to PDF, splitting across pages if needed
+    if (imgHeight < pageHeight) {
+      pdf.addImage(imgData, 'PNG', 20, position, imgWidth, imgHeight);
+    } else {
+      let remainingHeight = imgHeight;
+      while (remainingHeight > 0) {
+        pdf.addImage(imgData, 'PNG', 20, position, imgWidth, imgHeight);
+        remainingHeight -= pageHeight;
+        position -= pageHeight;
+
+        if (remainingHeight > 0) {
+          pdf.addPage();
+          position = 20; // Reset position for new page
+        }
+      }
+    }
+
+    // Save the PDF
+    pdf.save('Summary-Dashboard-report.pdf');
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    alert('Failed to generate PDF. Please try again.');
+  }
+};
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -114,7 +174,18 @@ export default function SummaryDashboard() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" ref={contentRef}>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Summary of The Survey Analysis</h2>
+        </div>
+        <div className="flex items-center space-x-2">         
+          <Button variant="outline" size="sm" onClick={exportToPDF}>
+            <Download className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
+        </div>
+      </div>
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="hover:shadow-lg transition-shadow">
