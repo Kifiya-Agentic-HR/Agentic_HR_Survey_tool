@@ -8,6 +8,7 @@ import io
 import json
 from collections import Counter
 import re
+from rapidfuzz import fuzz
 
 # Import authentication and database
 from database import create_tables, get_db, User
@@ -16,6 +17,7 @@ from auth import (
     create_user, authenticate_user, create_access_token, 
     get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
 )
+from llm_analysis import llm_analyzer
 from datetime import timedelta
 
 app = FastAPI(title="Survey Analysis API", version="1.0.0")
@@ -105,7 +107,32 @@ async def upload_file(
             df = pd.read_excel(io.BytesIO(contents))
         else:
             raise HTTPException(status_code=400, detail="Unsupported file format. Please upload CSV or Excel files.")
-        
+        """Clear the companys name"""
+        # Define what is considered a close match to 'kifiya'
+        def is_similar(word, target="kifiya", threshold=85):
+            return fuzz.ratio(word.lower(), target.lower()) >= threshold
+
+        # Replace similar words in a string
+        def replace_similar(text, target="kifiya", replacement="the company", threshold=85):
+            if not isinstance(text, str):
+                return text
+            words = re.findall(r'\b\w+\b', text)
+            for word in words:
+                if is_similar(word, target, threshold):
+                    text = re.sub(rf'\b{word}\b', replacement, text, flags=re.IGNORECASE)
+            return text
+        def safe_replace_similar(x):
+            try:
+                return replace_similar(x)
+            except Exception as e:
+                print(f"Error processing value: {x} — {e}")
+                return x
+      
+        # 1. Replace in column headers
+        df.columns = [replace_similar(col) for col in df.columns]
+
+        # 2. Replace in cell values
+        df = df.applymap(safe_replace_similar)
         current_dataset = df
         
         # Generate dataset info
@@ -254,6 +281,94 @@ async def get_text_analysis(current_user: User = Depends(get_current_user)):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error analyzing text data: {str(e)}")
+
+@app.get("/llm-analysis/{question_column}")
+async def get_llm_analysis(
+    question_column: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get LLM-powered analysis for a specific text question"""
+    if current_dataset is None:
+        raise HTTPException(status_code=404, detail="No dataset uploaded")
+    
+    try:
+        df = current_dataset
+        
+        if question_column not in df.columns:
+            raise HTTPException(status_code=400, detail="Question column not found in dataset")
+        
+        # Get text responses for the specified column
+        text_data = df[question_column].dropna().astype(str).tolist()
+        
+        if len(text_data) == 0:
+            raise HTTPException(status_code=400, detail="No text responses found for this question")
+        
+        # Run LLM analysis
+        sentiment_analysis = await llm_analyzer.analyze_sentiment(text_data)
+        theme_analysis = await llm_analyzer.extract_themes(text_data)
+        emotion_analysis = await llm_analyzer.analyze_emotions(text_data)
+        insights = await llm_analyzer.generate_insights(text_data, question_column)
+        
+        return {
+            "question": question_column,
+            "total_responses": len(text_data),
+            "sentiment_analysis": sentiment_analysis,
+            "theme_analysis": theme_analysis,
+            "emotion_analysis": emotion_analysis,
+            "insights": insights,
+            "analysis_timestamp": pd.Timestamp.now().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error in LLM analysis: {str(e)}")
+
+@app.get("/llm-analysis-all")
+async def get_llm_analysis_all(current_user: User = Depends(get_current_user)):
+    """Get LLM analysis for all text questions"""
+    if current_dataset is None:
+        raise HTTPException(status_code=404, detail="No dataset uploaded")
+    
+    try:
+        df = current_dataset
+        text_columns = df.columns[-3:]
+        
+        results = {}
+        
+        for column in text_columns:
+            text_data = df[column].dropna().astype(str).tolist()
+            
+            if len(text_data) > 0:
+                # Run LLM analysis for each column
+                sentiment_analysis = await llm_analyzer.analyze_sentiment(text_data)
+                theme_analysis = await llm_analyzer.extract_themes(text_data)
+                emotion_analysis = await llm_analyzer.analyze_emotions(text_data)
+                insights = await llm_analyzer.generate_insights(text_data, column)
+                
+                results[column] = {
+                    "question": column,
+                    "total_responses": len(text_data),
+                    "sentiment_analysis": sentiment_analysis,
+                    "theme_analysis": theme_analysis,
+                    "emotion_analysis": emotion_analysis,
+                    "insights": insights
+                }
+            else:
+                results[column] = {
+                    "question": column,
+                    "total_responses": 0,
+                    "error": "No responses found"
+                }
+        
+        return {
+            "analysis": results,
+            "summary": {
+                "total_questions_analyzed": len([r for r in results.values() if "error" not in r]),
+                "analysis_timestamp": pd.Timestamp.now().isoformat()
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error in comprehensive LLM analysis: {str(e)}")
 
 @app.get("/cross-tabulation/{question1}/{question2}")
 async def get_cross_tabulation(

@@ -38,7 +38,7 @@ services:
   # Frontend Application
   frontend:
     build:
-      context: .
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: hrsurvey_frontend
     ports:

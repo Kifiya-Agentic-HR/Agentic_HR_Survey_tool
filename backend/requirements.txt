@@ -12,3 +12,6 @@ psycopg2-binary
 bcrypt
 pyjwt
 email-validator
+langchain-groq
+google-generativeai
+rapidfuzz

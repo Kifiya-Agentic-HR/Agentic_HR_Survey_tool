@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,7 +18,8 @@ import {
   Pie, 
   Cell,
   LineChart,
-  Line
+  Line,
+  Legend,
 } from 'recharts';
 import { 
   BarChart3, 
@@ -29,6 +30,9 @@ import {
   Download,
   Filter
 } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import PptxGenJS from 'pptxgenjs';
 import { authService } from '@/lib/auth';
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -65,6 +69,7 @@ export default function MultipleChoiceAnalysis() {
   const [selectedQuestion, setSelectedQuestion] = useState<string>('');
   const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
   const [viewMode, setViewMode] = useState<'overview' | 'detailed'>('overview');
+   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchAnalysis();
@@ -96,6 +101,8 @@ export default function MultipleChoiceAnalysis() {
       setLoading(false);
     }
   };
+
+  
 
   const renderChart = (questionData: QuestionAnalysis) => {
     if (chartType === 'pie') {
@@ -176,16 +183,49 @@ export default function MultipleChoiceAnalysis() {
               />
               
               {/* Mini chart preview */}
-              <div className="h-32">
+              {/* Mini chart preview */}
+              <div className="h-64 space-y-4">  {/* Increased height and added spacing */}
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={questionData.chart_data.slice(0, 5)}>
-                    <Bar dataKey="value" fill="#3B82F6" radius={[2, 2, 0, 0]} />
+                  <PieChart>
+                    <Pie
+                      data={questionData.chart_data}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={80}
+                      paddingAngle={2}
+                      label={({ name, percent }) => 
+                        `${(percent * 100).toFixed(0)}%`
+                      }
+                      labelLine={true}
+                    >
+                      {questionData.chart_data.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={COLORS[index]}
+                        />
+                      ))}
+                    </Pie>
                     <Tooltip 
-                      formatter={(value: number) => [value, 'Responses']}
-                      labelFormatter={(label) => `${label}`}
+                      formatter={(value: number, name: string, props: any) => [
+                        `${value} responses`,
+                        props.payload.label
+                      ]}
                     />
-                  </BarChart>
+                    <Legend 
+                      layout="horizontal" 
+                      verticalAlign="bottom"
+                      align="center"
+                      wrapperStyle={{
+                        paddingTop: '20px'
+                      }}
+                    />
+                  </PieChart>
                 </ResponsiveContainer>
+
+                
               </div>
               
               <div className="flex items-center justify-between text-sm text-gray-600">
@@ -200,14 +240,68 @@ export default function MultipleChoiceAnalysis() {
       </div>
     );
   };
+const exportToPDF = async () => {
+  if (!contentRef.current) return;
 
+  try {
+    // Create a new PDF instance
+    const pdf = new jsPDF('p', 'pt', 'a4');
+    const width = pdf.internal.pageSize.getWidth();
+    const height = pdf.internal.pageSize.getHeight();
+
+    // Add title and date to the PDF
+    pdf.setFontSize(20);
+    pdf.text('Multiple Choice Analysis Report', width / 2, 40, { align: 'center' });
+    pdf.setFontSize(12);
+    pdf.text(`Generated on: ${new Date().toLocaleDateString()}`, width / 2, 60, { align: 'center' });
+
+    // Capture the content as canvas
+    const canvas = await html2canvas(contentRef.current, {
+      scale: 2, // Higher quality
+      useCORS: true,
+      allowTaint: true,
+      scrollY: -window.scrollY
+    });
+
+    // Calculate the aspect ratio to fit the content properly
+    const imgData = canvas.toDataURL('image/png');
+    const imgWidth = width - 40; // Margin of 20 on each side
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let position = 80; // Start position after title
+    const pageHeight = height - 100; // Leave some margin at bottom
+
+    // Add content to PDF, splitting across pages if needed
+    if (imgHeight < pageHeight) {
+      pdf.addImage(imgData, 'PNG', 20, position, imgWidth, imgHeight);
+    } else {
+      let remainingHeight = imgHeight;
+      while (remainingHeight > 0) {
+        pdf.addImage(imgData, 'PNG', 20, position, imgWidth, imgHeight);
+        remainingHeight -= pageHeight;
+        position -= pageHeight;
+
+        if (remainingHeight > 0) {
+          pdf.addPage();
+          position = 20; // Reset position for new page
+        }
+      }
+    }
+
+    // Save the PDF
+    pdf.save('multiple-choice-analysis-report.pdf');
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    alert('Failed to generate PDF. Please try again.');
+  }
+};
   const renderDetailed = () => {
     if (!data || !selectedQuestion || !data.analysis[selectedQuestion]) return null;
 
     const questionData = data.analysis[selectedQuestion];
     
     return (
-      <div className="space-y-6">
+      <div className="space-y-6" ref={contentRef}>
         {/* Question Header */}
         <Card>
           <CardHeader>
@@ -224,9 +318,9 @@ export default function MultipleChoiceAnalysis() {
                 >
                   Back to Overview
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={exportToPDF}>
                   <Download className="h-4 w-4 mr-2" />
-                  Export
+                  Export PDF
                 </Button>
               </div>
             </div>
@@ -322,7 +416,7 @@ export default function MultipleChoiceAnalysis() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6" ref={contentRef}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
             <Card key={i} className="animate-pulse">
@@ -357,7 +451,7 @@ export default function MultipleChoiceAnalysis() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={contentRef}>
       {/* Header with Controls */}
       <div className="flex items-center justify-between">
         <div>
@@ -388,6 +482,10 @@ export default function MultipleChoiceAnalysis() {
             <Filter className="h-4 w-4 mr-2" />
             Overview
           </Button>
+          <Button variant="outline" size="sm" onClick={exportToPDF}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export PDF
+                </Button>
         </div>
       </div>
 
