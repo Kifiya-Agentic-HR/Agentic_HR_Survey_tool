@@ -224,7 +224,7 @@ export default function SummaryDashboard() {
         </Card>
       </div>
 
-      {/* Question Completeness Chart */}
+      {/* Question Completeness Chart 
       <Card>
         <CardHeader>
           <CardTitle>Question Response Rates</CardTitle>
@@ -250,7 +250,8 @@ export default function SummaryDashboard() {
             </ResponsiveContainer>
           </div>
         </CardContent>
-      </Card>
+      </Card> 
+      */}
 
       {/* Response Quality Indicators */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
