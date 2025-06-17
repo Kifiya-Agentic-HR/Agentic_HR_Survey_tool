@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Upload, BarChart3, FileText, TrendingUp, Database, Download, ArrowLeft,Brain } from 'lucide-react';
+import { Upload, BarChart3, FileText, TrendingUp, Database,ArrowLeft, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import FileUpload from '@/components/FileUpload';

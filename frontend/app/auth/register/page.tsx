@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Eye, EyeOff, Search, Users, Lock } from 'lucide-react';
 import { authService } from '@/lib/auth';
 
@@ -219,11 +218,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="flex items-center space-x-2">
-              <Checkbox
-                id="terms"
-                checked={agreeToTerms}
-                onCheckedChange={setAgreeToTerms}
-              />
+              
               <Label htmlFor="terms" className="text-sm text-gray-600">
                 I agree to the{' '}
                 <Link href="/terms" className="text-orange-500 hover:text-orange-600">

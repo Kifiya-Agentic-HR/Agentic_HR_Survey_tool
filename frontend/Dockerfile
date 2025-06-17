@@ -2,11 +2,24 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Install system dependencies for html2canvas/canvas
+RUN apk add --no-cache \
+    build-base \
+    g++ \
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    giflib-dev \
+    libuuid
+
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install all dependencies (including devDependencies)
+RUN npm install
+
+# Update Browserslist
+RUN npx update-browserslist-db@latest
 
 # Copy source code
 COPY . .

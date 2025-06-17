@@ -68,13 +68,7 @@ const exportToPDF = async () => {
     const pdf = new jsPDF('p', 'pt', 'a4');
     const width = pdf.internal.pageSize.getWidth();
     const height = pdf.internal.pageSize.getHeight();
-    {/*
-    // Add title and date to the PDF
-    pdf.setFontSize(20);
-    pdf.text('Summary of The Survey', width / 2, 40, { align: 'center' });
-    pdf.setFontSize(12);
-    pdf.text(`Generated on: ${new Date().toLocaleDateString()}`, width / 2, 60, { align: 'center' });
-    */}
+   
     // Capture the content as canvas
     const canvas = await html2canvas(contentRef.current, {
       scale: 2, // Higher quality

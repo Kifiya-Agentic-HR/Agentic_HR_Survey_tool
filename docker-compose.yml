@@ -1,14 +1,11 @@
-version: '3.8'
-
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: hrsurvey_postgres
     environment:
       POSTGRES_DB: hrsurvey
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: Nigielove_21
     ports:
       - "5432:5432"
     volumes:
@@ -17,14 +14,13 @@ services:
     networks:
       - hrsurvey_network
 
-  # Backend API
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: hrsurvey_backend
     environment:
-      DATABASE_URL: postgresql://postgres:password@postgres:5432/hrsurvey
+      DATABASE_URL: postgresql://postgres:Nigielove_21@postgres:5432/hrsurvey
       SECRET_KEY: your-super-secret-jwt-key-change-in-production
     ports:
       - "8000:8000"
@@ -35,7 +31,6 @@ services:
     networks:
       - hrsurvey_network
 
-  # Frontend Application
   frontend:
     build:
       context: ./frontend
@@ -46,11 +41,7 @@ services:
     depends_on:
       - backend
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.next
+      NEXT_PUBLIC_API_URL: http://backend:8000 # Use container name for networking
     networks:
       - hrsurvey_network
 

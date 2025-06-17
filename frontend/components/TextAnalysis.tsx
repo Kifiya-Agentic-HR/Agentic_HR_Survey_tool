@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Textarea } from '@/components/ui/textarea';
+
 import { 
   BarChart, 
   Bar, 
@@ -122,13 +122,7 @@ export default function TextAnalysis() {
     const pdf = new jsPDF('p', 'pt', 'a4');
     const width = pdf.internal.pageSize.getWidth();
     const height = pdf.internal.pageSize.getHeight();
-    {/*
-    // Add title and date to the PDF
-    pdf.setFontSize(20);
-    pdf.text('Summary of The Survey', width / 2, 40, { align: 'center' });
-    pdf.setFontSize(12);
-    pdf.text(`Generated on: ${new Date().toLocaleDateString()}`, width / 2, 60, { align: 'center' });
-    */}
+    
     // Capture the content as canvas
     const canvas = await html2canvas(contentRef.current, {
       scale: 2, // Higher quality
