@@ -93,29 +93,7 @@ services:
       - app_network
     depends_on:
       - redis
-  # backend:
-  #   build:
-  #     context: ./backend
-  #   container_name: fastapi_backend
-  #   restart: always
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - mongo
-  #     # - minio
-  #   ports:
-  #     - "8000:8000"
 
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   container_name: nextjs_frontend
-  #   restart: always
-  #   ports:
-  #     - "3000:3000"
-  #   # depends_on:
-  #   #   - backend
 
 networks:
   app_network:

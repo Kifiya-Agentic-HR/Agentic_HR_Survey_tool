@@ -30,8 +30,8 @@ class InterviewFlowManagerCrew:
             self.tasks_config = yaml.safe_load(f)
 
         # Ensure Gemini is used
-        self.agents_config['flow_manager']['llm'] = 'gemini/gemini-pro'
-        self.tasks_config['flow_management_task']['llm'] = 'gemini/gemini-pro'
+        self.agents_config['flow_manager']['llm'] = 'gemini-pro'
+        self.tasks_config['flow_management_task']['llm'] = 'gemini-pro'
 
     @agent
     def flow_manager(self) -> Agent:

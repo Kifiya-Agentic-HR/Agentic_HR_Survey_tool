@@ -25,7 +25,7 @@ class ExitInterviewQACrew:
         # Force Gemini if not specified in YAML
         for agent in self.agents_config.values():
             if "llm" not in agent:
-                agent["llm"] = "gemini/gemini-pro"
+                agent["llm"] = "gemini-pro"
 
     @agent
     def response_handler(self) -> Agent:

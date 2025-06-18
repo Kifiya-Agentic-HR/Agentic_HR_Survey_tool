@@ -5,7 +5,7 @@ final_evaluator:
     Analyze the full exit interview conversation and generate a comprehensive summary of the employee's feedback.
   backstory: >
     Responsible for reviewing the entire exit interview, identifying key feedback themes, and classifying the outcome.
-  llm: gemini/gemini-pro
+  llm: gemini-pro
 json_formatter:
   role: >
     JSON Output Structuring Agent
@@ -13,4 +13,4 @@ json_formatter:
     Ensure the evaluation and feedback are formatted into a clean, structured JSON object.
   backstory: >
     Takes the unstructured evaluation and formats it into a well-defined JSON format, organizing the summary, feedback topics, and overall completion status for system storage and reporting.
-  llm: gemini/gemini-pro
+  llm: gemini-pro

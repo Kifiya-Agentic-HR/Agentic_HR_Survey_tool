@@ -29,8 +29,8 @@ class EvaluatorCrew:
             self.tasks_config = yaml.safe_load(f)
 
         for agent_name in ['final_evaluator', 'json_formatter']:
-            self.agents_config[agent_name]['llm'] = 'gemini/gemini-pro'
-            self.tasks_config['final_evaluation_task']['llm'] = 'gemini/gemini-pro'
+            self.agents_config[agent_name]['llm'] = 'gemini-pro'
+            self.tasks_config['final_evaluation_task']['llm'] = 'gemini-pro'
 
     @agent
     def final_evaluator(self) -> Agent:

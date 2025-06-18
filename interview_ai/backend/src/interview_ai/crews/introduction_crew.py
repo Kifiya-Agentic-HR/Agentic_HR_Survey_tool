@@ -31,8 +31,8 @@ class IntroductionCrew:
             self.tasks_config = yaml.safe_load(f)
 
         # Ensure Gemini is used
-        self.agents_config['welcome_agent']['llm'] = 'gemini/gemini-pro'
-        self.tasks_config['welcome_task']['llm'] = 'gemini/gemini-pro'
+        self.agents_config['welcome_agent']['llm'] = 'gemini-pro'
+        self.tasks_config['welcome_task']['llm'] = 'gemini-pro'
 
     @agent
     def welcome_agent(self) -> Agent:

@@ -57,4 +57,4 @@ final_evaluation_task:
     }
 
   agent: final_evaluator
-  llm: gemini/gemini-pro
+  llm: gemini-pro

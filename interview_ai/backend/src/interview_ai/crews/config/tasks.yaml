@@ -141,4 +141,4 @@ format_output_task:
     }
 
   agent: output_formatter
-  llm: gemini/gemini-pro
+  llm: gemini-pro

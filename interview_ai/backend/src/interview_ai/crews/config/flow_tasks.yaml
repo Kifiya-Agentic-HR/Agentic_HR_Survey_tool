@@ -32,4 +32,4 @@ flow_management_task:
     Output must be plain JSON (no markdown or backticks). No extra commentary—just the JSON.
 
   agent: flow_manager
-  llm: gemini/gemini-pro
+  llm: gemini-pro

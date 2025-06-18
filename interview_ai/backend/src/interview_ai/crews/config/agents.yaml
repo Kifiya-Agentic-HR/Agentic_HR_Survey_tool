@@ -9,7 +9,7 @@ question_generator:
     I ensure every response is respected, every concern is heard, and every conversation remains professional and composed.
   verbose: true
   allow_delegation: false
-  llm: gemini/gemini-pro
+  llm: gemini-pro
 
 response_handler:
   role: >
@@ -22,7 +22,7 @@ response_handler:
     By doing so, I ensure the organization captures the full meaning behind each response without making the conversation feel forced or clinical.
   verbose: true
   allow_delegation: false
-  llm: gemini/gemini-pro
+  llm: gemini-pro
 
 output_formatter:
   role: >
@@ -35,4 +35,4 @@ output_formatter:
     I avoid exaggeration or unnecessary polish—I aim for honest clarity, professional tone, and actionable formatting.
   verbose: true
   allow_delegation: false
-  llm: gemini/gemini-pro
+  llm: gemini-pro

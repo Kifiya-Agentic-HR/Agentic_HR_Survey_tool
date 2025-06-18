@@ -35,4 +35,4 @@ welcome_task:
     Do NOT include any extra formatting like markdown or code blocks.
 
   agent: welcome_agent
-  llm: gemini/gemini-pro
+  llm: gemini-pro
