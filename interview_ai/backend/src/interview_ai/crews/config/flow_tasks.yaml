@@ -1,0 +1,38 @@
+flow_management_task:
+  description: >
+    **Exit Interview Stages:**
+
+      * **Welcome:** The exit interview has just begun. No questions have been asked yet.
+      * **Ongoing:** The conversation is in progress and at least one question has been answered, but not all required questions are completed.
+      * **Completed:** All 18 core questions (excluding follow-ups) have been asked and answered.
+
+    **Stage Determination Rules:**
+
+    1. **Welcome:** If the `conversation_history` is empty, the interview is in the "welcome" stage.
+       - This is strictly true ONLY if the list is empty—partial conversation history does NOT count as welcome.
+    
+    2. **Ongoing:** If there is at least one question-answer pair in the `conversation_history` and fewer than 18 distinct primary questions have been asked, the state is "ongoing".
+       - Follow-up questions do not count toward the 18.
+       - The same question asked multiple times only counts once.
+
+    3. **Completed:** The state is "completed" when all 18 primary exit interview questions have been asked and answered (regardless of follow-ups).
+
+    **Input Data:**
+
+    * **Conversation History:** `{conversation_history}`
+      - Each entry is expected to contain at least `question` and `answer` fields.
+      - Optionally, may include `question_id` (1–18) to simplify tracking.
+
+  expected_output: >
+    Returns a JSON string indicating the current interview state:
+    - `{"state": "welcome"}`
+    - `{"state": "ongoing"}`
+    - `{"state": "completed"}`
+
+    Output must be plain JSON (no markdown or backticks). No extra commentary—just the JSON.
+
+  agent: flow_manager
+  llm:
+    provider: google
+    model: gemini/gemini-pro
+    temperature: 0.7

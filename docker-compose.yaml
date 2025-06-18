@@ -1,56 +1,126 @@
 
 services:
-  postgres:
-    image: postgres:15
-    container_name: db
-    restart: always
+  interview_frontend:
+    build:
+      context: ./interview_ai/frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: "http://${HOST}:${CMS_BACKEND_PORT}/api/v1"
+        NEXT_PUBLIC_INTERVIEW_BACKEND: "http://${HOST}:${CMS_BACKEND_PORT}"
+    container_name: InterviewFrontend
+    ports:
+      - "${INTERVIEW_FRONTEND_PORT}:3000"
+    depends_on:
+      - interview_backend
+    env_file: .env
     environment:
-      POSTGRES_USER: hr_admin
-      POSTGRES_PASSWORD: secret
-      POSTGRES_DB: hr_survey
+      NEXT_PUBLIC_API_BASE_URL: "http://${HOST}:${CMS_BACKEND_PORT}/api/v1"
+      NEXT_PUBLIC_INTERVIEW_BACKEND: "http://${HOST}:${CMS_BACKEND_PORT}"
+    networks:
+      - app_network
+
+  interview_backend:
+    build: ./interview_ai/backend
+    container_name: InterviewBackend
+    depends_on:
+      - mongod
+      - redis
+      - notification
+    env_file: .env
+    ports:
+      - "8030:8030"
+    environment:
+      port: 8030
+      MONGO_URI: "mongodb://mongod:27017/hr_db"
+      MONGO_DB: "hr_db"
+      REDIS_URI: "redis://redis:6379"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      MODEL: "${MODEL}"
+      NOTIFICATION_SERVICE_URL: "http://notification:${NOTIFICATION_PORT}/api/v1/"
+      FRONTEND_BASE_URL: "http://${HOST}:${INTERVIEW_FRONTEND_PORT}"
+      WEAVIATE_HOST: "weaviate"
+      WEAVIATE_PORT: 8081
+    networks:
+      - app_network
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - shared_volume:/shared_volume
+
+  mongod:
+    image: mongo:latest
+    command: mongod --quiet --logpath /dev/null
+    container_name: Mongod
     ports:
-      - "5432:5432"
-
-  # minio:
-  #   image: minio/minio
-  #   container_name: minio
-  #   restart: always
-  #   environment:
-  #     MINIO_ACCESS_KEY: minioadmin
-  #     MINIO_SECRET_KEY: minioadmin123
-  #   volumes:
-  #     - minio_data:/data
-  #   ports:
-  #     - "9000:9000"
-  #     - "9001:9001"
-  #   command: server /data --console-address ":9001"
-
-  backend:
-    build:
-      context: ./backend
-    container_name: fastapi_backend
+      - "27037:27017"
     restart: always
-    env_file:
-      - .env
-    depends_on:
-      - postgres
-      # - minio
-    ports:
-      - "8000:8000"
+    volumes:
+      - ./data/mongo:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: hr_db
+    networks:
+      - app_network
 
-  frontend:
+  redis:
+    image: redis:latest
+    container_name: Redis
+    restart: always
+    ports:
+      - "6377:6377"
+    networks:
+      - app_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"
+    volumes:
+      - redis-data:/data
+
+  notification:
     build:
-      context: ./frontend
+      context: ./notification
       dockerfile: Dockerfile
-    container_name: nextjs_frontend
-    restart: always
     ports:
-      - "3000:3000"
+      - "7788:8000"
+    env_file: .env
+    environment:
+      PORT: 8000
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+      REDIS_URI: "redis://redis:6379/0"
+    networks:
+      - app_network
     depends_on:
-      - backend
+      - redis
+  # backend:
+  #   build:
+  #     context: ./backend
+  #   container_name: fastapi_backend
+  #   restart: always
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - mongo
+  #     # - minio
+  #   ports:
+  #     - "8000:8000"
+
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: nextjs_frontend
+  #   restart: always
+  #   ports:
+  #     - "3000:3000"
+  #   # depends_on:
+  #   #   - backend
+
+networks:
+  app_network:
+    driver: bridge
 
 volumes:
-  postgres_data:
-  # minio_data:
+  shared_volume:
+  redis-data:

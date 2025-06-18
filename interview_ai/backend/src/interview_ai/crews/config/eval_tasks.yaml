@@ -1,0 +1,63 @@
+final_evaluation_task:
+  description: >
+    Conduct a comprehensive exit interview evaluation and generate a professional summary for HR.
+
+    **Evaluation Objectives:**
+    - Identify themes in the employee’s feedback
+    - Summarize both positive and negative aspects of their experience
+    - Detect areas needing improvement (e.g., compensation, management, culture)
+    - Reflect alignment/misalignment with organizational values
+    - Provide HR with a clean and actionable summary, not a performance judgment
+
+    **Evaluation Protocol:**
+    1. Analyze `conversation_history`:
+       - What were recurring pain points or praised areas?
+       - Did the employee mention dissatisfaction or concerns?
+       - Did they show openness to return in the future?
+
+    2. Cross-reference with `role_info` and `user_info`:
+       - How aligned was their experience with their responsibilities and expectations?
+       - Did tenure, department, or context affect their perspective?
+
+    3. Create a final summary including:
+       - 2–3 key strengths or positive experiences
+       - 2–3 challenges or issues raised
+       - Notable suggestions for improvement
+       - Whether they would recommend or return to the company
+
+    **Required Output Keys:**
+
+    - `state`: always "completed"
+    - `text`: short, professional closing message thanking them and confirming closure
+    - `summary`: string capturing key themes (positive + negative), tone, and notable feedback points
+    - `recommendation_status`: "Would Recommend", "Would Not Recommend", or "Neutral"
+    - `return_status`: "Would Return", "Would Not Return", or "Unstated"
+    - `rating`: a general sentiment score out of 100 (not performance-based, just reflective of overall satisfaction tone)
+
+    **Formatting Rules:**
+    - All strings must use double quotes
+    - Keep structure strictly JSON
+    - No extra commentary or markdown formatting
+
+    **Input References:**
+    - `conversation_history`
+    - `role_info`
+    - `user_info`
+
+  expected_output: >
+    A structured JSON object like the following:
+
+    {
+      "state": "completed",
+      "text": "Thanks for your time and honest feedback. We appreciate your contribution and wish you all the best in your next chapter.",
+      "summary": "The employee enjoyed team collaboration and learning opportunities, but raised concerns about compensation and limited growth. Suggested better manager feedback and more training support.",
+      "recommendation_status": "Would Recommend",
+      "return_status": "Would Return",
+      "rating": 78
+    }
+
+  agent: final_evaluator
+  llm:
+    provider: google
+    model: gemini/gemini-pro
+    temperature: 0.7

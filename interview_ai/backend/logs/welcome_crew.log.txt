@@ -1,0 +1,156 @@
+2025-02-19 12:51:34: task_name="welcome_task", task="Create a personalized welcome message that includes:
+  - The candidate's name (from User Info)
+  - The job title (from Job Title)
+  - A friendly greeting and a brief explanation of the interview's purpose and procedure
+
+Note:
+  - The message is meant for a live interview interface, not as an email.
+  - The provided candidate info and job title will be inserted where indicated.
+  - Don't feel obligated to use all the provided information in the message.
+  - Make sure it sounds like a friendly, human greeting, not a robotic message.
+  - The message should be concise and to the point.
+
+User Info:
+  Alice Smith - No Background Experience realted to Data Scientist
+
+Job Title:
+  Data Scientist
+", agent="Welcome Agent", status="started"
+2025-02-19 12:51:37: task_name="welcome_task", task="Create a personalized welcome message that includes:
+  - The candidate's name (from User Info)
+  - The job title (from Job Title)
+  - A friendly greeting and a brief explanation of the interview's purpose and procedure
+
+Note:
+  - The message is meant for a live interview interface, not as an email.
+  - The provided candidate info and job title will be inserted where indicated.
+  - Don't feel obligated to use all the provided information in the message.
+  - Make sure it sounds like a friendly, human greeting, not a robotic message.
+  - The message should be concise and to the point.
+
+User Info:
+  Alice Smith - No Background Experience realted to Data Scientist
+
+Job Title:
+  Data Scientist
+", agent="Welcome Agent", status="completed", output="{
+  "state": "welcome",
+  "text": "Hello Alice Smith! Welcome to your interview for the Data Scientist position. We're excited to get to know you better and discuss how your unique skills and fresh perspective can contribute to our team. During this interview, we'll talk about your interests, explore your analytical thinking, and discuss how you can grow with us. Let's have a great conversation!"
+}"
+2025-02-19 14:21:51: task_name="welcome_task", task="Create a personalized welcome message that includes:
+  - The candidate's name (from User Info)
+  - The job title (from Job Title)
+  - A friendly greeting and a brief explanation of the interview's purpose and procedure
+
+Note:
+  - The message is meant for a live interview interface, not as an email.
+  - The provided candidate info and job title will be inserted where indicated.
+  - Don't feel obligated to use all the provided information in the message.
+  - Make sure it sounds like a friendly, human greeting, not a robotic message.
+  - The message should be concise and to the point.
+
+User Info:
+  John Doe, a software engineer with 5 years of experience in backend development.
+
+Job Title:
+  Senior Machine Learning Engineer focusing on NLP applications.
+", agent="Welcome Agent", status="started"
+2025-02-19 14:21:53: task_name="welcome_task", task="Create a personalized welcome message that includes:
+  - The candidate's name (from User Info)
+  - The job title (from Job Title)
+  - A friendly greeting and a brief explanation of the interview's purpose and procedure
+
+Note:
+  - The message is meant for a live interview interface, not as an email.
+  - The provided candidate info and job title will be inserted where indicated.
+  - Don't feel obligated to use all the provided information in the message.
+  - Make sure it sounds like a friendly, human greeting, not a robotic message.
+  - The message should be concise and to the point.
+
+User Info:
+  John Doe, a software engineer with 5 years of experience in backend development.
+
+Job Title:
+  Senior Machine Learning Engineer focusing on NLP applications.
+", agent="Welcome Agent", status="completed", output="{
+  "state": "welcome",
+  "text": "Hello John Doe! Welcome to today's interview for the Senior Machine Learning Engineer position with a focus on NLP applications. We're excited to learn more about your experience and explore how your background in backend development can align with our team's goals. During this interview, we'll discuss your skills, experience, and your approach to machine learning challenges to see if we're a great fit. Let's dive in and start our conversation!"
+}"
+2025-02-19 16:04:33: task_name="welcome_task", task="Create a personalized welcome message that includes:
+  - The candidate's name (from User Info)
+  - The job title (from Job Title)
+  - A friendly greeting and a brief explanation of the interview's purpose and procedure
+
+Note:
+  - The message is meant for a live interview interface, not as an email.
+  - The provided candidate info and job title will be inserted where indicated.
+  - Don't feel obligated to use all the provided information in the message.
+  - Make sure it sounds like a friendly, human greeting, not a robotic message.
+  - The message should be concise and to the point.
+
+User Info:
+  John Doe
+
+Job Title:
+  Software Engineer
+", agent="Welcome Agent", status="started"
+2025-02-19 16:04:35: task_name="welcome_task", task="Create a personalized welcome message that includes:
+  - The candidate's name (from User Info)
+  - The job title (from Job Title)
+  - A friendly greeting and a brief explanation of the interview's purpose and procedure
+
+Note:
+  - The message is meant for a live interview interface, not as an email.
+  - The provided candidate info and job title will be inserted where indicated.
+  - Don't feel obligated to use all the provided information in the message.
+  - Make sure it sounds like a friendly, human greeting, not a robotic message.
+  - The message should be concise and to the point.
+
+User Info:
+  John Doe
+
+Job Title:
+  Software Engineer
+", agent="Welcome Agent", status="completed", output="{
+  "state": "welcome",
+  "text": "Hello John Doe! Welcome to your interview for the Software Engineer position. We're thrilled to have you here today! This interview is an opportunity for us to learn more about your skills and experiences, as well as for you to see if our team is a good fit for you. We'll start with some questions about your background and then give you a chance to ask any questions you might have. Let's get started!"
+}"
+2025-02-19 16:50:29: task_name="welcome_task", task="Create a personalized welcome message that includes:
+  - The candidate's name (from User Info)
+  - The job title (from Job Title)
+  - A friendly greeting and a brief explanation of the interview's purpose and procedure
+
+Note:
+  - The message is meant for a live interview interface, not as an email.
+  - The provided candidate info and job title will be inserted where indicated.
+  - Don't feel obligated to use all the provided information in the message.
+  - Make sure it sounds like a friendly, human greeting, not a robotic message.
+  - The message should be concise and to the point.
+
+User Info:
+  John Doe, a data scientist with 3 years of experience in predictive modeling, data analysis, and machine learning.
+
+Job Title:
+  Data Scientist at ABC Tech, responsible for building and deploying machine learning models, conducting statistical analysis, and optimizing data pipelines.
+", agent="Welcome Agent", status="started"
+2025-02-19 16:50:32: task_name="welcome_task", task="Create a personalized welcome message that includes:
+  - The candidate's name (from User Info)
+  - The job title (from Job Title)
+  - A friendly greeting and a brief explanation of the interview's purpose and procedure
+
+Note:
+  - The message is meant for a live interview interface, not as an email.
+  - The provided candidate info and job title will be inserted where indicated.
+  - Don't feel obligated to use all the provided information in the message.
+  - Make sure it sounds like a friendly, human greeting, not a robotic message.
+  - The message should be concise and to the point.
+
+User Info:
+  John Doe, a data scientist with 3 years of experience in predictive modeling, data analysis, and machine learning.
+
+Job Title:
+  Data Scientist at ABC Tech, responsible for building and deploying machine learning models, conducting statistical analysis, and optimizing data pipelines.
+", agent="Welcome Agent", status="completed", output="{
+  "state": "welcome",
+  "text": "Hello John Doe! Welcome to your interview for the Data Scientist position at ABC Tech. We're excited to have you here today. This interview is a chance for us to get to know you better, discuss your expertise in predictive modeling, data analysis, and machine learning, and explore how you can contribute to our team. We'll start with some questions about your experience and projects, followed by an opportunity for you to ask any questions you may have. Let's get started!"
+}"

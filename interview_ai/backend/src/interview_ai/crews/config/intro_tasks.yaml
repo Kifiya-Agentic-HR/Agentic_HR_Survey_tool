@@ -1,0 +1,41 @@
+welcome_task:
+  description: >
+    Create a personalized welcome message for an exit interview that includes:
+      - The employee's name (from User Info)
+      - Their job title (from Job Title)
+      - A warm, respectful greeting that sets a comfortable tone
+      - A brief explanation of the purpose of the exit interview (e.g., to gather honest feedback, understand their experience, and improve the workplace)
+      - Reassure the employee that their responses are confidential and valued
+      - End with an open-ended kickoff question like: "To get us started, could you tell me a bit about your experience working here?"
+
+    Guidelines:
+      - Use a calm, conversational, and professional tone—no corporate jargon or robotic phrasing.
+      - Avoid overly formal language. Speak as if you're having a relaxed conversation with a colleague.
+      - Keep it short, natural, and sincere.
+
+    Provided Inputs:
+
+    Employee Name:
+      {name}
+
+    User Info:
+      {user_info}
+    
+    Job Title:
+      {role_info}
+
+  expected_output: >
+    The output should be a JSON object with the following structure:
+    
+    {
+      "state": "welcome",
+      "text": "Personalized welcome message for the exit interview."
+    }
+
+    Do NOT include any extra formatting like markdown or code blocks.
+
+  agent: welcome_agent
+  llm:
+    provider: google
+    model: gemini/gemini-pro
+    temperature: 0.7
