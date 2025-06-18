@@ -141,7 +141,4 @@ format_output_task:
     }
 
   agent: output_formatter
-  llm:
-    provider: google
-    model: gemini/gemini-pro
-    temperature: 0.7
+  llm: gemini/gemini-pro

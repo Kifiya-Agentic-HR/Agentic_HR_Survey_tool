@@ -1,5 +1,8 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
+import os
+import yaml
+
 
 ###############################################################################
 # Crew 2: Welcome Crew
@@ -11,8 +14,9 @@ from crewai.project import CrewBase, agent, crew, task
 class IntroductionCrew:
     """Welcome Crew: Greets the user and explains the interview process."""
 
-    agents_config = 'config/intro_agents.yaml'
-    tasks_config = 'config/intro_tasks.yaml'
+    base_dir = os.path.dirname(__file__)
+    agents_config = os.path.join(base_dir, 'config', 'intro_agents.yaml')
+    tasks_config = os.path.join(base_dir, 'config', 'intro_tasks.yaml')
 
     def __init__(self):
         # Load environment variables
@@ -27,13 +31,8 @@ class IntroductionCrew:
             self.tasks_config = yaml.safe_load(f)
 
         # Ensure Gemini is used
-        self.agents_config['welcome_agent'].setdefault('llm', {}).update({
-            'model': 'gemini/gemini-pro',
-            'provider': 'google'
-        })
-        self.tasks_config['welcome_task'].setdefault('llm', {}).update({
-            'model': 'gemini/gemini-pro'
-        })
+        self.agents_config['welcome_agent']['llm'] = 'gemini/gemini-pro'
+        self.tasks_config['welcome_task']['llm'] = 'gemini/gemini-pro'
 
     @agent
     def welcome_agent(self) -> Agent:

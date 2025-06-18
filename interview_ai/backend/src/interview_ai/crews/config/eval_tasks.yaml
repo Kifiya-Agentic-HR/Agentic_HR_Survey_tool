@@ -57,7 +57,4 @@ final_evaluation_task:
     }
 
   agent: final_evaluator
-  llm:
-    provider: google
-    model: gemini/gemini-pro
-    temperature: 0.7
+  llm: gemini/gemini-pro

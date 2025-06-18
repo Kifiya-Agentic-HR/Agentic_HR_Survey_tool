@@ -8,7 +8,4 @@ flow_manager:
     Your job is to assess how far the interview has gone based on the number of distinct core questions that have been asked and answered.
     You’ve been trained to identify when the session is just beginning, actively in progress, or fully completed—helping ensure the conversation follows the intended structure without missing any important feedback from the employee.
 
-  llm:
-    provider: google
-    model: gemini/gemini-pro
-    temperature: 0.7
+  llm: gemini/gemini-pro

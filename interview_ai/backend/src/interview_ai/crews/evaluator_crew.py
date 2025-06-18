@@ -1,7 +1,7 @@
 from crewai import Agent, Crew, Task, Process
 import yaml
 from crewai.project import CrewBase, agent, crew, task
-
+import os
 ###############################################################################
 # Crew 3: Final Evaluator Crew
 #   - Contains the Final Evaluator agent and task.
@@ -12,8 +12,9 @@ from crewai.project import CrewBase, agent, crew, task
 class EvaluatorCrew:
     """Final Evaluator Crew: Provides the final evaluation at interview end."""
 
-    agents_config = 'config/eval_agents.yaml'
-    tasks_config = 'config/eval_tasks.yaml'
+    base_dir = os.path.dirname(__file__)
+    agents_config = os.path.join(base_dir, 'config', 'eval_agents.yaml')
+    tasks_config = os.path.join(base_dir, 'config', 'eval_tasks.yaml')
 
     def __init__(self):
         # Load environment variables
@@ -27,17 +28,9 @@ class EvaluatorCrew:
         with open(self.tasks_config, 'r') as f:
             self.tasks_config = yaml.safe_load(f)
 
-        # Force Gemini configuration
         for agent_name in ['final_evaluator', 'json_formatter']:
-            self.agents_config[agent_name].setdefault('llm', {}).update({
-                'model': 'gemini/gemini-pro',
-                'provider': 'google'
-            })
-        
-        self.tasks_config['final_evaluation_task'].setdefault('llm', {}).update({
-            'model': 'gemini/gemini-pro',
-            'provider': 'google'
-        })
+            self.agents_config[agent_name]['llm'] = 'gemini/gemini-pro'
+            self.tasks_config['final_evaluation_task']['llm'] = 'gemini/gemini-pro'
 
     @agent
     def final_evaluator(self) -> Agent:

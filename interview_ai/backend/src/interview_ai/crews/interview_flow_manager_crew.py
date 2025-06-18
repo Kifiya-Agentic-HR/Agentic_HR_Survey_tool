@@ -1,5 +1,7 @@
 from crewai import Agent, Crew, Task
 from crewai.project import CrewBase, agent, crew, task
+import yaml
+import os
 
 ###############################################################################
 # Crew 4: State Determiner Crew
@@ -11,8 +13,9 @@ from crewai.project import CrewBase, agent, crew, task
 class InterviewFlowManagerCrew:
     """State Determiner Crew: Determines the current state of the interview flow."""
 
-    agents_config = 'config/flow_agents.yaml'
-    tasks_config = 'config/flow_tasks.yaml'
+    base_dir = os.path.dirname(__file__)
+    agents_config = os.path.join(base_dir, 'config', 'flow_agents.yaml')
+    tasks_config = os.path.join(base_dir, 'config', 'flow_tasks.yaml')
 
     def __init__(self):
         # Load environment variables
@@ -27,13 +30,8 @@ class InterviewFlowManagerCrew:
             self.tasks_config = yaml.safe_load(f)
 
         # Ensure Gemini is used
-        self.agents_config['flow_manager'].setdefault('llm', {}).update({
-            'model': 'gemini/gemini-pro',
-            'provider': 'google'
-        })
-        self.tasks_config['flow_management_task'].setdefault('llm', {}).update({
-            'model': 'gemini/gemini-pro'
-        })
+        self.agents_config['flow_manager']['llm'] = 'gemini/gemini-pro'
+        self.tasks_config['flow_management_task']['llm'] = 'gemini/gemini-pro'
 
     @agent
     def flow_manager(self) -> Agent:

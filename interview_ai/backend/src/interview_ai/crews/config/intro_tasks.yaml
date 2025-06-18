@@ -35,7 +35,4 @@ welcome_task:
     Do NOT include any extra formatting like markdown or code blocks.
 
   agent: welcome_agent
-  llm:
-    provider: google
-    model: gemini/gemini-pro
-    temperature: 0.7
+  llm: gemini/gemini-pro
