@@ -15,3 +15,4 @@ email-validator
 langchain-groq
 google-generativeai
 rapidfuzz
+fuzzywuzzy[speedup]

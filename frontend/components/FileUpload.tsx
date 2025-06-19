@@ -210,7 +210,7 @@ export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
           {uploading && (
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Uploading...</span>
+                <span>Uploading and Translating...</span>
                 <span>{uploadProgress}%</span>
               </div>
               <Progress value={uploadProgress} className="h-2" />

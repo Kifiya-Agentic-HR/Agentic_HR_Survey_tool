@@ -11,7 +11,7 @@ from langchain_groq import ChatGroq
 from groq import Groq
 from dotenv import load_dotenv
 import os
-import os
+import time
 import google.generativeai as genai
 
 load_dotenv()
@@ -24,17 +24,155 @@ if not os.getenv("GROQ_API_KEY"):
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 # Set API key
-if not os.getenv("GOOGLE_API_KEY"):
+if not os.getenv("GOOGLE_API_KEY2"):
     raise ValueError("GOOGLE_API_KEY environment variable not set")
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY2"))
+
+def clean_llm_output(text):
+                text = remove_markdown_code_block(text)
+                text = clean_quotes(text)
+                return text
+
+def remove_markdown_code_block(text: str) -> str:
+    return re.sub(r"^```.*?\n|```$", "", text.strip(), flags=re.DOTALL)
+
+def clean_quotes(text):
+    return re.sub(r"[‘’]", "'", re.sub(r"[“”]", '"', text))
 
 
 class LLMAnalyzer:
     def __init__(self):
         self.model = "llama-3.1-8b-instant"  # or "gpt-4" for better results
+        """
+        Initializes the Translator with the given API key and configures
+        the GenerativeModel with a specific system instruction.
 
-    
+        Args:
+            api_key (str): Your Google Gemini API key.
+        """
+        api_key = os.getenv("GOOGLE_API_KEY2")
+        if not api_key:
+            raise ValueError("API key cannot be empty. Please provide a valid Gemini API key.")
         
+        genai.configure(api_key=api_key)
+        
+        self.model2 = genai.GenerativeModel(
+            model_name="gemini-2.5-flash",
+            # The system_instruction is crucial for defining the model's role and expected output format.
+            system_instruction="""
+            You are a professional translator specializing in Amharic-to-English translation.
+
+            You will be given a list of text responses as a Python-list-like string.
+            For example: "Input: ['sentence1', 'sentence2', 'sentence3']".
+            Some of the responses in the input list are in Amharic, and some are already in English.
+
+            Your task is to process each item in the input list:
+            - If the text is in Amharic, translate it into clear, fluent English, preserving the tone, meaning, and context as much as possible.
+            - If the text is already in English, leave it unchanged.
+            
+            Your entire output MUST be a single, valid JSON array of strings.
+            The array should contain the translated or original responses, in the exact same order as the input.
+            Do NOT include any extra text, explanations, language tags, markdown formatting (like ```json), or notes outside the JSON array.
+
+            Example:
+            Input: ['ሰላም', 'Hello', 'እንዴት ነህ?']
+            Output: ["Hello", "Hello", "How are you?"]
+
+            Be accurate, culturally sensitive, and natural in tone.
+            """
+        )
+    
+    async def translator(self, texts: List[str]) -> List[str]:
+        """
+        Translates a list of sentences, identifying and translating only Amharic sentences
+        to English using batch processing.
+
+        Args:
+            texts (List[str]): A list of sentences, potentially containing a mix of
+                               English and Amharic.
+
+        Returns:
+            List[str]: A new list containing the translated (if Amharic) or
+                       original (if English) sentences.
+        
+        Raises:
+            json.JSONDecodeError: If the model's output is not a valid JSON array.
+            Exception: For any other unexpected errors during the API call.
+        """
+        if not texts:
+            return []
+
+        # Function to split into batches
+        def batch_list(lst: List[str], batch_size: int):
+            """Yields successive n-sized chunks from lst."""
+            for i in range(0, len(lst), batch_size):
+                yield lst[i:i + batch_size]
+
+        translated_all = []
+        batch_size = 20  # Recommended batch size, adjust if needed based on token limits and latency
+
+        for i, batch in enumerate(batch_list(texts, batch_size)):
+            print(f"Processing batch {i+1} of {len(texts) // batch_size + (1 if len(texts) % batch_size > 0 else 0)}...")
+            
+            # CRITICAL CORRECTION:
+            # The prompt sent to generate_content_async must be a simple string.
+            # We convert the Python list 'batch' into its string representation,
+            # which matches the format described in the system_instruction.
+            prompt_content = f"Input: {str(batch)}"
+
+            try:
+                # Use generate_content_async for non-blocking I/O
+                response = await self.model2.generate_content_async(
+                    prompt_content,
+                    generation_config=genai.types.GenerationConfig(
+                        # This setting is crucial for forcing the model to output a valid JSON string.
+                        response_mime_type="application/json" 
+                    )
+                )
+                
+                raw_output = response.text.strip()
+                
+                # Attempt to parse the raw string output as a JSON array
+                translated_batch = json.loads(raw_output)
+                
+                # Basic validation: Check if the number of translated items matches the input batch size
+                if len(translated_batch) != len(batch):
+                    print(f"Warning: Batch {i+1} output length mismatch. Expected {len(batch)}, got {len(translated_batch)}. "
+                          f"Raw output: {raw_output}")
+                    # Depending on requirements, you might want to:
+                    # 1. Retry the batch.
+                    # 2. Log the discrepancy and fill with placeholders.
+                    # 3. Raise a specific error for inconsistent output.
+                    # For this example, we'll continue, but be aware of potential data integrity issues.
+
+                translated_all.extend(translated_batch)
+                
+                # Introduce a small delay to respect API rate limits and avoid overwhelming the service.
+                # Use asyncio.sleep in an async function to avoid blocking the event loop.
+                await asyncio.sleep(1) # Reduced sleep slightly, adjust based on your quota
+                
+            except json.JSONDecodeError as e:
+                print(f"ERROR: JSON Decoding Error in batch {i+1}: {e}")
+                print(f"Problematic raw output:\n{raw_output}")
+                # Re-raise the error as it indicates a serious parsing failure
+                raise
+            except Exception as e:
+                print(f"ERROR: An unexpected error occurred in batch {i+1}: {e}")
+                print(f"Raw output (if any):\n{raw_output if 'raw_output' in locals() else 'N/A'}")
+                # Re-raise for general API or network issues
+                raise
+
+        # Print the results for demonstration
+        print("\n--- Final Translation Results Summary ---")
+        for original, translated in zip(texts, translated_all):
+            # Ensure 'translated' is a string before printing, in case of partial failures
+            # where translated_all might not perfectly align if errors were suppressed.
+            print(f"Original: {original}\nTranslated: {translated}\n")
+            
+        
+        return translated_all
+    
+   
     async def analyze_sentiment(self, texts: List[str]) -> Dict[str, Any]:
         """Analyze sentiment of text responses using LLM"""
         if not texts:
@@ -68,7 +206,9 @@ class LLMAnalyzer:
         """
         
         try:
+                        
             response = await self._call_llm(prompt)
+            response = clean_llm_output(response)
             result = json.loads(response)            
             # Calculate statistics
             sentiments = result.get("sentiments", [])
@@ -127,6 +267,8 @@ class LLMAnalyzer:
         try:
             print(f"Input prompt for extract_themes (length: {len(prompt)} chars): {prompt[:500]}...")  # Log partial prompt
             response = await self._call_llm(prompt)
+            response = clean_llm_output(response)
+            
             print(f"Raw extract_themes response (length: {len(response)} chars): {response}")  # Log full response
             if not response.strip():
                 return {"themes": [], "summary": "Empty response from LLM"}
@@ -194,10 +336,11 @@ class LLMAnalyzer:
             "total_analyzed": 40
         }}
         """
-        
+        response = await self._call_llm(prompt)
         try:
-            response = await self._call_llm(prompt)
-            print(response)
+            
+            response = clean_llm_output(response)
+            
             return json.loads(response)
         except json.JSONDecodeError as e:
                 print(f"JSON decode error in extract_emotions: {str(e)}")
@@ -257,9 +400,10 @@ class LLMAnalyzer:
             "summary": "Overall summary of findings"
         }}
         """
-        
+        response = await self._call_llm(prompt)
         try:
-            response = await self._call_llm(prompt)
+            
+            response = clean_llm_output(response)
             return json.loads(response)
         except json.JSONDecodeError as e:
                 print(f"JSON decode error in extract_insights: {str(e)}")
@@ -289,25 +433,20 @@ class LLMAnalyzer:
     async def _call_llm(self, prompt: str) -> str:
         """Make API call to LLM"""
         try:
-            '''
+            
             messages=[
                     {"role": "system", "content": "You are an expert survey analyst. Provide accurate, detailed analysis in the requested JSON format."},
                     {"role": "user", "content": prompt}
                 ]
-            response = client.chat.completions.create(
-                    model="llama-3.1-8b-instant",
+            completion = client.chat.completions.create(
+                    model=self.model,
                     messages=messages,
-                    temperature=0.7,
+                    temperature=0.0,
                     max_tokens=8192
                 )   
-            '''
-            model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash",
-                system_instruction="You are an expert survey analyst. Provide accurate, detailed analysis in the requested JSON format."
-                )  
-            chat = model.start_chat(history=[])
-            response = chat.send_message(prompt)    
-            return response.text
+            
+            response = completion.choices[0].message.content
+            return response
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"LLM API error: {str(e)}")
     

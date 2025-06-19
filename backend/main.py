@@ -9,6 +9,9 @@ import json
 from collections import Counter
 import re
 from rapidfuzz import fuzz
+import pandas as pd
+import os
+import glob
 
 # Import authentication and database
 from database import create_tables, get_db, User
@@ -19,6 +22,186 @@ from auth import (
 )
 from llm_analysis import llm_analyzer
 from datetime import timedelta
+import pandas as pd
+from fuzzywuzzy import process
+    
+
+# Define the correct headers
+English_headers = [
+    "How long have you been with the company?",	
+    "Which department do you work in?",
+    "How familiar are you with the company’s stated values?",
+    "How clearly do you understand your team’s goal and the broader organization objectives?",
+    "How well do you understand your role within your team and the broader organization?",
+    "To what extent do you feel a sense of belonging within your team or the broader organization?",
+    "How effective is communication between your team and other departments in fostering a unified company culture?",
+    "How well do you believe leadership demonstrates behaviors that support a positive and inclusive workplace culture?",
+    "How respected and fairly treated do you feel in your workplace interactions?",
+    "How well does the organization’s culture support employees in adapting to changes \n",
+    "To what extent does the company culture support your ability to maintain a healthy balance between work and personal life?",
+    "How comfortable do you feel providing honest feedback about the workplace culture without fear of negative consequences? ",
+    "I have opportunities for professional growth and development.",
+    "My workload is manageable.",
+    "I am fairly compensated for my work.",
+    "I feel a sense of belonging at Kifya.",
+    "How likely are you to recommend this company to a friend as a great place to work?",
+    "Do you see yourself working here one year from now? ",
+    "What is one thing you enjoy most about working at Kifya?",
+    "What is one area of the company you believe could be improved, and how?",
+    "Do you have any additional feedback or comments you'd like to share?"
+]
+
+def clean_df(df):   
+    
+    amharic_to_english_dict = {
+        "ከ 6 ወር ያነሰ": "Less than 6 months",
+        "ከ 6 ወር እስከ 1 ዓመት": "6 months to 1 year",
+        "ከ 1 እስከ 3 ዓመታት": "1 to 3 years" ,
+        "ከ 3 እስከ 5 ዓመታት": "3 to 5 years",
+        "ከ 5 ዓመታት በላይ":"More than 5 years",
+        "1 እስከ 3 ዓመታት": "1 to 3 years",
+        "6 ወር ያነሰ": "Less than 6 months",
+        "6 ወር እስከ 1 ዓመት": "6 months to 1 year",
+
+        "1 እስከ 3 ዓመታት": "1 to 3 years" ,
+        "3 እስከ 5 ዓመታት": "3 to 5 years",
+        "5 ዓመታት በላይ":"More than 5 years",
+        "ከ 3 እስከ 5 አመት":"3 to 5 years",
+
+
+        # Departments
+        "ፋይናንስ": "Finance",
+        # Familiarity/Effectiveness/Agreement Scales
+
+        "በጣም በደንብ": "Very familiar",
+        "በጣም ብደንብ":"Very familiar",
+        "በተወሰነ ደረጃ": "Somewhat",
+        "በተወሰነ ደርጃ": "Somewhat",
+        "በተወሰነ ደርጃ": "Somewhat",
+        "ገለልተኛ": "Neutral",
+        "በደንብ አይደለም": "Not very well",
+        "በጭራሽ":"Not at all",
+
+        "በጣም በግልጽ": "Very clearly",
+        "በተወሰነ ደረጃ በግልጽ": "Somewhat clearly",
+        "በተወሰነ ደርጃ በግልጽ": "Somewhat clearly",
+        
+        "ገለልተኛ":"Neutral",
+        "በደንብ ግልጽ አይደለም":"Not Clear",
+        "በጭራሽ ግልጽ አይደለም":"Not Clear at All",
+
+        "በጣም በደንብ":"Very well",
+        "በተወሰነ ደረጃ በደንብ":"Somewhat well",
+        "በተወሰነ ደርጃ በደንብ":"Somewhat well",
+        "ገለልተኛ":"Neutral",
+        "በደንብ አይደለም":"Not very well",
+        "በጭራሽ":"Not at all",
+
+        "ብዙ ጊዜ": "Often",
+        "አልፎ አልፎ": "Sometimes",
+        "ሁልጊዜ": "Always",
+        "በጭራሽ": "Rarely",
+        "ምንም": "Not at all",
+
+        "በጣም ውጤታማ":"Very effective",
+        "በተወሰነ ደረጃ ውጤታማ":"Somewhat effective",
+        "በትወሰነ ደረጃ ውጤታማ": "Somewhat effective",
+        "ገለልተኛ":"Neutral",
+        "በተወሰነ ደረጃ ውጤታማ ያልሆነ":"Somewhat ineffective",
+        "በጣም ውጤታማ ያልሆነ":"Not very effective",
+
+        "እጅግ በጣም በደንብ":"Extremely well",
+        "እጅግ በጣም በደንብ":"Extremely well",
+        "በጣም በደንብ":"Very well",
+        "በጣም ብደንብ":"Very well",
+        "በመጠኑ በደንብ":"Moderately well",
+        "በመጠኑ በድንብ":"Moderately well",
+        "በትንሹ በደንብ":"Slightly well",
+        "በጭራሽ":"Not at all",
+        "በጭራሽ ":"Not at all",
+
+        "በጣም ምቹ":"Very comfortable",
+        "በተወሰነ ደረጃ ምቹ":"Somewhat comfortable",
+        "ገለልተኛ":"Neutral",
+        "በተወሰነ ደረጃ የማይመች":"Somewhat uncomfortable",
+        "በጣም የማይመች":"Very uncomfortable",
+
+        "በጣም እስማማለሁ":"Strongly agree",
+        "እስማማለሁ":"Agree",
+        "ገለልተኛ":"Neutral",
+        "አልስማማም":"Disagree",
+        "አልስማማም":"Disagree",
+        "በጣም አልስማማም":"Strongly disagree",
+
+        "እጅግ በጣም ሊሆን የሚችል":"Extremely likely",
+        "በጣም ሊሆን የሚችል":"Very likely",
+        "በተወሰነ ደረጃ ሊሆን የሚችል":"Somewhat likely",
+        "ያን ያህል ሊሆን የሚችል አይደለም":"Not so likely",
+        "በጭራሽ ሊሆን የሚችል አይደለም":"Not at all likely",
+
+        "በከፍተኛ ደረጃ":"To a great extent ",
+        "በተወሰነ ደረጃ":"To some extent",
+        "ገለልተኛ":"Neutral",
+        "በትንሽ ደረጃ":"To a small extent",
+        "በጭራሽ":"Not at all",
+
+        "አዎ":"Yes",
+        "አይ":"No",
+        "እርግጠኛ አይደለሁም":"Not sure",
+
+    }
+
+    merged_df = df.replace(amharic_to_english_dict)
+    merged_df = merged_df.dropna(how='all')
+
+    merged_df = merged_df.map(lambda x: x.strip() if isinstance(x, str) else x)
+    # Target list of correct department names
+    target_values = [
+        "Business-IFS",
+        "Business",
+        "CEO Office",
+        "Finance",
+        "HR & Admin",
+        "MSP",
+        "Product",
+        "Technology",
+        "Agency Network"
+    ]
+
+    def get_closest_match(value, choices, threshold=80):
+        if isinstance(value, str) and value.strip():  # Check it's a non-empty string
+            match, score = process.extractOne(value.strip(), choices)
+            return match if score >= threshold else value
+        return value  # Return original if not a string (e.g., NaN or number)
+
+
+    merged_df.iloc[:, 1] = merged_df.iloc[:, 1].apply(lambda x: get_closest_match(x, target_values))
+
+
+    return merged_df
+
+def get_last_21(df):
+    return df.iloc[:, -21:]
+
+def is_similar(word, target="kifiya", threshold=85):
+    return fuzz.ratio(word.lower(), target.lower()) >= threshold
+
+def replace_similar(text, target="kifiya", replacement="the company", threshold=85):
+    if not isinstance(text, str):
+        return text
+    words = re.findall(r'\b\w+\b', text)
+    for word in words:
+        if is_similar(word, target, threshold):
+            text = re.sub(rf'\b{word}\b', replacement, text, flags=re.IGNORECASE)
+    return text
+
+def safe_replace_similar(x):
+    try:
+        return replace_similar(x)
+    except Exception as e:
+        print(f"Error processing value: {x} — {e}")
+        return x
+
 
 app = FastAPI(title="Survey Analysis API", version="1.0.0")
 
@@ -77,10 +260,12 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
+   
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "user": UserResponse.from_orm(user)
+        "user": UserResponse.from_orm(user),
     }
 
 @app.get("/auth/me", response_model=UserResponse)
@@ -90,56 +275,87 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
 
 @app.post("/upload")
 async def upload_file(
-    file: UploadFile = File(...), 
+    file: UploadFile = File(...),
     current_user: User = Depends(get_current_user)
 ):
     """Upload and process survey data file"""
     global current_dataset, dataset_info
-    
+
     try:
-        # Read file content
+        file_path = f"./data/{file.filename}"
+        print(file_path)
+        base_name, extension = os.path.splitext(file.filename)
+        print("base_name:", base_name)
+        # Check if file already exists
+        if os.path.exists(file_path):
+            print("File already exists. Loading existing cleaned data...")
+            df = pd.read_csv(f"./data/{base_name}.csv")
+            current_dataset = df
+
+            # Recreate dataset_info (minimal version)
+            total_columns = len(df.columns)
+            mc_columns = df.columns[:-3].tolist()
+            text_columns = df.columns[-3:].tolist()
+
+            dataset_info = {
+                "filename": file.filename,
+                "total_responses": len(df),
+                "total_questions": total_columns,
+                "multiple_choice_questions": len(mc_columns),
+                "text_questions": len(text_columns),
+                "mc_column_names": mc_columns,
+                "text_column_names": text_columns,
+                "upload_success": True,
+                "uploaded_by": current_user.email
+            }
+
+            return dataset_info
+
+        # Else, process uploaded content
         contents = await file.read()
-        
-        # Determine file type and read accordingly
-        if file.filename.endswith('.csv'):
-            df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
-        elif file.filename.endswith(('.xlsx', '.xls')):
-            df = pd.read_excel(io.BytesIO(contents))
+        dataframes = []
+
+        if file.filename.endswith(".csv"):
+            df = pd.read_csv(io.StringIO(contents.decode('utf-8')), header=0)
+            df = get_last_21(df)
+            df.columns = English_headers
+            dataframes.append(df)
+
+        elif file.filename.endswith((".xlsx", ".xls")):
+            xls = pd.ExcelFile(io.BytesIO(contents))
+            for idx, sheet_name in enumerate(xls.sheet_names):
+                if idx == 0:
+                    df = xls.parse(sheet_name, header=0)
+                else:
+                    df = xls.parse(sheet_name, header=None, skiprows=1)
+                df = get_last_21(df)
+                df.columns = English_headers
+                dataframes.append(df)
         else:
             raise HTTPException(status_code=400, detail="Unsupported file format. Please upload CSV or Excel files.")
-        """Clear the companys name"""
-        # Define what is considered a close match to 'kifiya'
-        def is_similar(word, target="kifiya", threshold=85):
-            return fuzz.ratio(word.lower(), target.lower()) >= threshold
 
-        # Replace similar words in a string
-        def replace_similar(text, target="kifiya", replacement="the company", threshold=85):
-            if not isinstance(text, str):
-                return text
-            words = re.findall(r'\b\w+\b', text)
-            for word in words:
-                if is_similar(word, target, threshold):
-                    text = re.sub(rf'\b{word}\b', replacement, text, flags=re.IGNORECASE)
-            return text
-        def safe_replace_similar(x):
-            try:
-                return replace_similar(x)
-            except Exception as e:
-                print(f"Error processing value: {x} — {e}")
-                return x
-      
-        # 1. Replace in column headers
+        merged_df = pd.concat(dataframes, ignore_index=True)
+        df = clean_df(merged_df)
+
         df.columns = [replace_similar(col) for col in df.columns]
+        df = df.map(safe_replace_similar)
+        df = clean_df(df)
 
-        # 2. Replace in cell values
-        df = df.applymap(safe_replace_similar)
         current_dataset = df
-        
-        # Generate dataset info
+
+        # Extract metadata
         total_columns = len(df.columns)
-        mc_columns = df.columns[:-3].tolist()  # Multiple choice columns
-        text_columns = df.columns[-3:].tolist()  # Text response columns
-        
+        mc_columns = df.columns[:-3].tolist()
+        text_columns = df.columns[-3:].tolist()
+
+        # Translate text fields
+        for col in text_columns:
+            current_dataset[col] = await llm_analyzer.translator(current_dataset[col].fillna("").astype(str).tolist())
+
+        # Save to disk
+        df.to_csv(file_path, index=False)
+        df.to_csv(f"./data/{base_name}.csv", index=False)
+
         dataset_info = {
             "filename": file.filename,
             "total_responses": len(df),
@@ -151,12 +367,12 @@ async def upload_file(
             "upload_success": True,
             "uploaded_by": current_user.email
         }
-        
+
         return dataset_info
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
-
+    
 @app.get("/dataset-info")
 async def get_dataset_info(current_user: User = Depends(get_current_user)):
     """Get information about the current dataset"""
@@ -300,6 +516,7 @@ async def get_llm_analysis(
         # Get text responses for the specified column
         text_data = df[question_column].dropna().astype(str).tolist()
         
+        
         if len(text_data) == 0:
             raise HTTPException(status_code=400, detail="No text responses found for this question")
         
@@ -338,7 +555,9 @@ async def get_llm_analysis_all(current_user: User = Depends(get_current_user)):
             text_data = df[column].dropna().astype(str).tolist()
             
             if len(text_data) > 0:
+                
                 # Run LLM analysis for each column
+                
                 sentiment_analysis = await llm_analyzer.analyze_sentiment(text_data)
                 theme_analysis = await llm_analyzer.extract_themes(text_data)
                 emotion_analysis = await llm_analyzer.analyze_emotions(text_data)
