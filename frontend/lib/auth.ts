@@ -5,6 +5,7 @@ interface User {
   email: string;
   is_active: boolean;
   created_at: string;
+  role: string;
 }
 
 interface AuthResponse {
@@ -23,6 +24,12 @@ interface RegisterData {
   last_name: string;
   email: string;
   password: string;
+  role: string;
+}
+
+interface ChangePasswordData {
+  currentPassword: string;
+  newPassword: string;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -142,7 +149,41 @@ class AuthService {
 
     return response;
   }
+
+  async adminCreateUser(data: RegisterData): Promise<User> {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE_URL}/admin/create-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'User creation failed');
+    }
+    return await response.json();
+  }
+
+  async changePassword(data: ChangePasswordData): Promise<any> {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Password change failed');
+    }
+    return await response.json();
+  }
 }
 
 export const authService = new AuthService();
-export type { User, AuthResponse, LoginData, RegisterData };
+export type { User, AuthResponse, LoginData, RegisterData, ChangePasswordData };

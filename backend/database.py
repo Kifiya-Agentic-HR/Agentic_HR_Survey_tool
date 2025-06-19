@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
@@ -24,6 +24,27 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    role = Column(String, nullable=False, default='User')
+
+# EventLog model
+class EventLog(Base):
+    __tablename__ = "event_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    event_type = Column(String, nullable=False)
+    event_details = Column(JSON)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    ip_address = Column(String)
+
+# AccessLog model
+class AccessLog(Base):
+    __tablename__ = "access_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    user_role = Column(String, nullable=False)
+    ip_address = Column(String, nullable=False)
+    accessed_at = Column(DateTime, default=datetime.utcnow)
+    action = Column(String)
 
 # Create tables
 def create_tables():

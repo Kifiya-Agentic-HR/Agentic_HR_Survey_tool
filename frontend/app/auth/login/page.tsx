@@ -26,8 +26,12 @@ export default function LoginPage() {
     setError('');
     
     try {
-      await authService.login({ email, password });
+      const authData = await authService.login({ email, password });
+      if (authData.user.role === 'HR_admin') {
+        router.push('/admin');
+      } else {
       router.push('/dashboard');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {

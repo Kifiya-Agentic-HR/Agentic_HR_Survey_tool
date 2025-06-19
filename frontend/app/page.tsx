@@ -10,7 +10,17 @@ export default function HomePage() {
     const isAuthenticated = localStorage.getItem('isAuthenticated');
     
     if (isAuthenticated) {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        if (user.role === 'HR_admin') {
+          router.push('/admin');
+        } else {
+          router.push('/dashboard');
+        }
+      } else {
       router.push('/dashboard');
+      }
     } else {
       router.push('/auth/login');
     }

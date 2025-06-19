@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from database import get_db, User, hash_password, verify_password
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, Union
 import jwt
 from datetime import datetime, timedelta
 import os
@@ -21,6 +21,14 @@ class UserCreate(BaseModel):
     last_name: str
     email: EmailStr
     password: str
+    role: str = "User"
+
+class AdminUserCreate(BaseModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+    password: str
+    role: str
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -33,6 +41,7 @@ class UserResponse(BaseModel):
     email: str
     is_active: bool
     created_at: datetime
+    role: str
 
     class Config:
         from_attributes = True
@@ -85,11 +94,11 @@ def authenticate_user(email: str, password: str, db: Session):
     user = db.query(User).filter(User.email == email).first()
     if not user:
         return False
-    if not verify_password(password, user.hashed_password):
+    if not verify_password(password, getattr(user, 'hashed_password')):
         return False
     return user
 
-def create_user(user_data: UserCreate, db: Session):
+def create_user(user_data: Union[UserCreate, AdminUserCreate], db: Session):
     # Check if user already exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
@@ -104,7 +113,8 @@ def create_user(user_data: UserCreate, db: Session):
         first_name=user_data.first_name,
         last_name=user_data.last_name,
         email=user_data.email,
-        hashed_password=hashed_password
+        hashed_password=hashed_password,
+        role=getattr(user_data, 'role', 'User')
     )
     db.add(db_user)
     db.commit()

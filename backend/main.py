@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Security, Body, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import pandas as pd
@@ -14,38 +14,38 @@ import os
 import glob
 
 # Import authentication and database
-from database import create_tables, get_db, User
+from database import create_tables, get_db, User, EventLog, AccessLog, hash_password, verify_password
 from auth import (
     UserCreate, UserLogin, UserResponse, Token, 
     create_user, authenticate_user, create_access_token, 
-    get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
+    get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES, AdminUserCreate
 )
 from llm_analysis import llm_analyzer
 from datetime import timedelta
 import pandas as pd
 from fuzzywuzzy import process
-    
+from audit import log_event, log_access
 
 # Define the correct headers
 English_headers = [
     "How long have you been with the company?",	
     "Which department do you work in?",
-    "How familiar are you with the company’s stated values?",
-    "How clearly do you understand your team’s goal and the broader organization objectives?",
+    "How familiar are you with the company's stated values?",
+    "How clearly do you understand your team's goal and the broader organization objectives?",
     "How well do you understand your role within your team and the broader organization?",
     "To what extent do you feel a sense of belonging within your team or the broader organization?",
     "How effective is communication between your team and other departments in fostering a unified company culture?",
     "How well do you believe leadership demonstrates behaviors that support a positive and inclusive workplace culture?",
     "How respected and fairly treated do you feel in your workplace interactions?",
-    "How well does the organization’s culture support employees in adapting to changes \n",
+    "How well does the organization's culture support employees in adapting to changes \n",
     "To what extent does the company culture support your ability to maintain a healthy balance between work and personal life?",
-    "How comfortable do you feel providing honest feedback about the workplace culture without fear of negative consequences? ",
+    "How comfortable do you feel providing honest feedback about the workplace culture without fear of negative consequences? ",
     "I have opportunities for professional growth and development.",
     "My workload is manageable.",
     "I am fairly compensated for my work.",
     "I feel a sense of belonging at Kifya.",
     "How likely are you to recommend this company to a friend as a great place to work?",
-    "Do you see yourself working here one year from now? ",
+    "Do you see yourself working here one year from now? ",
     "What is one thing you enjoy most about working at Kifya?",
     "What is one area of the company you believe could be improved, and how?",
     "Do you have any additional feedback or comments you'd like to share?"
@@ -227,28 +227,41 @@ dataset_info = None
 async def root():
     return {"message": "Survey Analysis API is running"}
 
+def require_admin(current_user: User = Depends(get_current_user)):
+    if current_user.role != "HR_admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
 # Authentication endpoints
 @app.post("/auth/register", response_model=Token)
-async def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Register a new user"""
+async def register(user_data: AdminUserCreate, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admin creates a new user"""
     try:
         user = create_user(user_data, db)
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data={"sub": user.email}, expires_delta=access_token_expires
-        )
-        return {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "user": UserResponse.from_orm(user)
-        }
+        return {"user": UserResponse.from_orm(user)}
     except HTTPException as e:
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
+@app.post("/admin/create-user", response_model=UserResponse)
+async def admin_create_user(user_data: AdminUserCreate, request: Request, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admin creates a new user with role"""
+    user = create_user(user_data, db)
+    log_event(current_user.id, "admin_create_user", {"created_user": user.email, "role": user.role}, request.client.host)
+    return UserResponse.from_orm(user)
+
+@app.post("/auth/change-password")
+async def change_password(current_password: str, new_password: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """User changes their own password"""
+    if not verify_password(current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    current_user.hashed_password = hash_password(new_password)
+    db.commit()
+    return {"detail": "Password changed successfully"}
+
 @app.post("/auth/login", response_model=Token)
-async def login(user_data: UserLogin, db: Session = Depends(get_db)):
+async def login(user_data: UserLogin, db: Session = Depends(get_db), request: Request = None):
     """Login user"""
     user = authenticate_user(user_data.email, user_data.password, db)
     if not user:
@@ -260,8 +273,7 @@ async def login(user_data: UserLogin, db: Session = Depends(get_db)):
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
-   
-
+    log_access(user.id, user.role, request.client.host if request else 'unknown', "login")
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -275,6 +287,7 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
 
 @app.post("/upload")
 async def upload_file(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user)
 ):
@@ -367,6 +380,8 @@ async def upload_file(
             "upload_success": True,
             "uploaded_by": current_user.email
         }
+
+        log_event(current_user.id, "survey_upload", {"filename": file.filename}, request.client.host)
 
         return dataset_info
 
@@ -499,10 +514,7 @@ async def get_text_analysis(current_user: User = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=f"Error analyzing text data: {str(e)}")
 
 @app.get("/llm-analysis/{question_column}")
-async def get_llm_analysis(
-    question_column: str,
-    current_user: User = Depends(get_current_user)
-):
+async def get_llm_analysis(question_column: str, current_user: User = Depends(get_current_user)):
     """Get LLM-powered analysis for a specific text question"""
     if current_dataset is None:
         raise HTTPException(status_code=404, detail="No dataset uploaded")
@@ -590,11 +602,7 @@ async def get_llm_analysis_all(current_user: User = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=f"Error in comprehensive LLM analysis: {str(e)}")
 
 @app.get("/cross-tabulation/{question1}/{question2}")
-async def get_cross_tabulation(
-    question1: str, 
-    question2: str, 
-    current_user: User = Depends(get_current_user)
-):
+async def get_cross_tabulation(question1: str, question2: str, current_user: User = Depends(get_current_user)):
     """Generate cross-tabulation between two multiple choice questions"""
     if current_dataset is None:
         raise HTTPException(status_code=404, detail="No dataset uploaded")
@@ -670,6 +678,142 @@ async def get_summary_stats(current_user: User = Depends(get_current_user)):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating summary statistics: {str(e)}")
+
+@app.get("/admin/users", response_model=List[UserResponse])
+async def list_users(current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """List all users (admin only)"""
+    users = db.query(User).all()
+    return [UserResponse.from_orm(u) for u in users]
+
+@app.post("/admin/reset-password")
+async def admin_reset_password(email: str, new_password: str, request: Request, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Admin resets a user's password"""
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.hashed_password = hash_password(new_password)
+    db.commit()
+    log_event(current_user.id, "admin_reset_password", {"reset_user": email}, request.client.host)
+    return {"detail": "Password reset successfully"}
+
+@app.delete("/admin/users/{user_id}")
+async def delete_user(user_id: int, request: Request, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(user)
+    db.commit()
+    log_event(current_user.id, "admin_delete_user", {"deleted_user_id": user_id}, request.client.host)
+    return {"detail": "User deleted successfully"}
+
+@app.post("/admin/users/{user_id}/deactivate")
+async def deactivate_user(user_id: int, request: Request, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = False
+    db.commit()
+    log_event(current_user.id, "admin_deactivate_user", {"deactivated_user_id": user_id}, request.client.host)
+    return {"detail": "User deactivated successfully"}
+
+@app.post("/admin/users/{user_id}/activate")
+async def activate_user(user_id: int, request: Request, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = True
+    db.commit()
+    log_event(current_user.id, "admin_activate_user", {"activated_user_id": user_id}, request.client.host)
+    return {"detail": "User activated successfully"}
+
+@app.put("/admin/users/{user_id}")
+async def edit_user(user_id: int, request: Request, first_name: str = Body(...), last_name: str = Body(...), email: str = Body(...), role: str = Body(...), current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.first_name = first_name
+    user.last_name = last_name
+    user.email = email
+    user.role = role
+    db.commit()
+    db.refresh(user)
+    log_event(current_user.id, "admin_edit_user", {"edited_user": user.email, "role": user.role}, request.client.host)
+    return {"detail": "User updated successfully", "user": UserResponse.from_orm(user)}
+
+@app.get("/admin/audit/event-logs")
+async def get_event_logs(current_user: User = Depends(require_admin), db: Session = Depends(get_db), user_id: int = None, event_type: str = None, ip: str = None, start: str = None, end: str = None):
+    query = db.query(EventLog)
+    if user_id:
+        query = query.filter(EventLog.user_id == user_id)
+    if event_type:
+        query = query.filter(EventLog.event_type == event_type)
+    if ip:
+        query = query.filter(EventLog.ip_address == ip)
+    if start:
+        query = query.filter(EventLog.timestamp >= start)
+    if end:
+        query = query.filter(EventLog.timestamp <= end)
+    logs = []
+    for row in query.order_by(EventLog.timestamp.desc()).all():
+        log = row.__dict__.copy()
+        if log.get("timestamp"):
+            log["timestamp"] = log["timestamp"].isoformat()
+        logs.append(log)
+    return logs
+
+@app.get("/admin/audit/access-logs")
+async def get_access_logs(current_user: User = Depends(require_admin), db: Session = Depends(get_db), user_id: int = None, role: str = None, ip: str = None, start: str = None, end: str = None):
+    query = db.query(AccessLog)
+    if user_id:
+        query = query.filter(AccessLog.user_id == user_id)
+    if role:
+        query = query.filter(AccessLog.user_role == role)
+    if ip:
+        query = query.filter(AccessLog.ip_address == ip)
+    if start:
+        query = query.filter(AccessLog.accessed_at >= start)
+    if end:
+        query = query.filter(AccessLog.accessed_at <= end)
+    logs = []
+    for row in query.order_by(AccessLog.accessed_at.desc()).all():
+        log = row.__dict__.copy()
+        if log.get("accessed_at"):
+            log["accessed_at"] = log["accessed_at"].isoformat()
+        logs.append(log)
+    return logs
+
+@app.get("/dashboard")
+async def dashboard(request: Request, current_user: User = Depends(get_current_user)):
+    log_access(current_user.id, current_user.role, request.client.host, "view_dashboard")
+    log_event(current_user.id, "view_dashboard", {"page": "dashboard"}, request.client.host)
+    return {"message": "Dashboard"}
+
+@app.get("/survey-dashboard")
+async def survey_dashboard(request: Request, current_user: User = Depends(get_current_user)):
+    log_access(current_user.id, current_user.role, request.client.host, "view_survey_dashboard")
+    log_event(current_user.id, "view_survey_dashboard", {"page": "survey-dashboard"}, request.client.host)
+    return {"message": "Survey Dashboard"}
+
+@app.get("/admin")
+async def admin_page(request: Request, current_user: User = Depends(require_admin)):
+    log_access(current_user.id, current_user.role, request.client.host, "view_admin")
+    return {"message": "Admin Page"}
+
+@app.get("/admin/audit-logs")
+async def audit_logs_page(request: Request, current_user: User = Depends(require_admin)):
+    log_access(current_user.id, current_user.role, request.client.host, "view_audit_logs")
+    return {"message": "Audit Logs Page"}
+
+@app.get("/admin/users")
+async def admin_users_page(request: Request, current_user: User = Depends(require_admin)):
+    log_access(current_user.id, current_user.role, request.client.host, "view_user_management")
+    return {"message": "User Management Page"}
+
+@app.post("/auth/logout")
+async def logout(request: Request, current_user: User = Depends(get_current_user)):
+    log_access(current_user.id, current_user.role, request.client.host, "logout")
+    log_event(current_user.id, "logout", {"action": "logout"}, request.client.host)
+    return {"detail": "Logged out successfully"}
 
 if __name__ == "__main__":
     import uvicorn

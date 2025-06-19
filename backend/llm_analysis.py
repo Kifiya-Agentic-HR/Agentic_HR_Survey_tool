@@ -375,8 +375,8 @@ class LLMAnalyzer:
         Provide:
         1. Key insights (3-5 main findings)
         2. Actionable recommendations (3-5 specific actions)
-        3. Areas of concern (if any)
-        4. Positive highlights
+        3. Areas of concern with explicit Complaints (clear, direct expressions of dissatisfaction or frustration)(4-6 specific concerns)(if any)
+        4. Positive highlights (4-6 specific highlights)
         
         Responses:
         {chr(10).join([f"{i+1}. {text}" for i, text in enumerate(sample_texts)])}
@@ -441,7 +441,7 @@ class LLMAnalyzer:
             completion = client.chat.completions.create(
                     model=self.model,
                     messages=messages,
-                    temperature=0.0,
+                    temperature=0.7,
                     max_tokens=8192
                 )   
             
