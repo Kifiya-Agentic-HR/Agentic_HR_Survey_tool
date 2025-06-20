@@ -1,3 +1,4 @@
+version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
@@ -6,12 +7,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      
-
     ports:
-      - "543:5432"
+      - "5433:5432"  # Changed from 543 to 5433 to match CI/CD
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -25,9 +22,10 @@ services:
     container_name: hrsurvey_backend
     environment:
       DATABASE_URL: ${DATABASE_URL}
-      SECRET_KEY: your-super-secret-jwt-key-change-in-production
+      SECRET_KEY: ${SECRET_KEY}
+      PORT: 7075  # Internal port for backend
     ports:
-      - "8000:8000"
+      - "7075:7075"  # External:Internal
     depends_on:
       - postgres
     volumes:
@@ -41,11 +39,11 @@ services:
       dockerfile: Dockerfile
     container_name: hrsurvey_frontend
     ports:
-      - "3000:3000"
+      - "8088:3000"  # External:Internal
     depends_on:
       - backend
     environment:
-      NEXT_PUBLIC_API_URL: http://backend:8000 # Use container name for networking
+      NEXT_PUBLIC_API_URL: http://localhost:7075  # Updated to use backend port
     networks:
       - hrsurvey_network
 
