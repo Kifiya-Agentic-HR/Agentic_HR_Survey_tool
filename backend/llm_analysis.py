@@ -367,14 +367,14 @@ class LLMAnalyzer:
         if not texts:
             return {"insights": [], "recommendations": []}
             
-        sample_texts = texts[:25] if len(texts) > 25 else texts
+        sample_texts = texts[:50] if len(texts) > 50 else texts
         
         prompt = f"""
         Analyze these survey responses for the question: "{question}"
         
         Provide:
-        1. Key insights (3-5 main findings)
-        2. Actionable recommendations (3-5 specific actions)
+        1. Key insights (4-6 main findings)
+        2. Actionable recommendations (4-6 specific actions)
         3. Areas of concern with explicit Complaints (clear, direct expressions of dissatisfaction or frustration)(4-6 specific concerns)(if any)
         4. Positive highlights (4-6 specific highlights)
         
@@ -441,7 +441,7 @@ class LLMAnalyzer:
             completion = client.chat.completions.create(
                     model=self.model,
                     messages=messages,
-                    temperature=0.7,
+                    temperature=0.3,
                     max_tokens=8192
                 )   
             

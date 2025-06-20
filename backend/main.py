@@ -12,6 +12,8 @@ from rapidfuzz import fuzz
 import pandas as pd
 import os
 import glob
+from dotenv import load_dotenv
+load_dotenv()
 
 # Import authentication and database
 from database import create_tables, get_db, User, EventLog, AccessLog, hash_password, verify_password
@@ -25,6 +27,9 @@ from datetime import timedelta
 import pandas as pd
 from fuzzywuzzy import process
 from audit import log_event, log_access
+
+db_url = os.getenv("DATABASE_URL")
+print(db_url)
 
 # Define the correct headers
 English_headers = [

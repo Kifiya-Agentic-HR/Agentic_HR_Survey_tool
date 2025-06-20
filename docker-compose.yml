@@ -3,11 +3,15 @@ services:
     image: postgres:15-alpine
     container_name: hrsurvey_postgres
     environment:
-      POSTGRES_DB: hrsurvey
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Nigielove_21
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      
+
     ports:
-      - "5433:5432"
+      - "543:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -20,7 +24,7 @@ services:
       dockerfile: Dockerfile
     container_name: hrsurvey_backend
     environment:
-      DATABASE_URL: postgresql://postgres:Nigielove_21@postgres:5432/hrsurvey
+      DATABASE_URL: ${DATABASE_URL}
       SECRET_KEY: your-super-secret-jwt-key-change-in-production
     ports:
       - "8000:8000"

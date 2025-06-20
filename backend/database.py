@@ -4,11 +4,16 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import bcrypt
-
+from dotenv import load_dotenv
+load_dotenv()
+db_user = os.getenv("POSTGRES_USER")
+db_name = os.getenv("POSTGRES_DB")
+db_password = os.getenv("POSTGRES_PASSWORD")
+db_host = os.getenv("POSTGRES_HOST")
 # Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:Nigielove_21@localhost:5432/hrsurvey")
-
-engine = create_engine(DATABASE_URL)
+DATABASE_URL = os.getenv("DATABASE_URL")#, f"postgresql://{db_user}:{db_password}@{db_host}:5432/{db_name}")
+print(DATABASE_URL)
+engine = create_engine("postgresql://survey_hr_admin:ai2025_ahst@de-ingester-instance-1.coo17ussvrhh.us-east-1.rds.amazonaws.com:5432/hrsurvey")
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
