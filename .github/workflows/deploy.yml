@@ -1,0 +1,100 @@
+name: CI/CD for Agentic HR Survey Tool (EC2 + Docker Compose)
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  SSH_USER: ${{ secrets.SSH_USER }}
+  SSH_HOST: ${{ secrets.EC2_HOST }}
+  FRONTEND_PORT: 3000
+  BACKEND_PORT: 7075  # Changed from 8000 to 7075
+  POSTGRES_PORT: 5433
+  POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+  POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+  POSTGRES_DATABASE: hrsurvey
+  JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+jobs:
+  deploy:
+    name: Deploy to EC2 with Docker Compose
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create Docker Compose file
+        run: |
+          cat << EOF > docker-compose.yml
+          version: '3.8'
+          services:
+            postgres:
+              image: postgres:15-alpine
+              container_name: hrsurvey_postgres
+              environment:
+                POSTGRES_USER: $POSTGRES_USER
+                POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+                POSTGRES_DB: $POSTGRES_DATABASE
+              ports:
+                - "$POSTGRES_PORT:5432"
+              volumes:
+                - postgres_data:/var/lib/postgresql/data
+              networks:
+                - hrsurvey_network
+
+            backend:
+              build:
+                context: ./backend
+                dockerfile: Dockerfile
+              container_name: hrsurvey_backend
+              environment:
+                DATABASE_URL: postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DATABASE
+                SECRET_KEY: $JWT_SECRET
+                PORT: 8088  # Explicitly set the internal port
+              ports:
+                - "$BACKEND_PORT:7075"  # Map external 7075 to internal 7075
+              depends_on:
+                - postgres
+              volumes:
+                - ./backend:/app
+              networks:
+                - hrsurvey_network
+
+            frontend:
+              build:
+                context: ./frontend
+                dockerfile: Dockerfile
+              container_name: hrsurvey_frontend
+              environment:
+                NEXT_PUBLIC_API_URL: http://backend:7075  # Update to use internal port
+              ports:
+                - "$FRONTEND_PORT:3000"
+              depends_on:
+                - backend
+              networks:
+                - hrsurvey_network
+
+          volumes:
+            postgres_data:
+
+          networks:
+            hrsurvey_network:
+              driver: bridge
+          EOF
+
+      - name: SSH and Deploy to EC2
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+          
+          echo "Transferring project files to EC2..."
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i private_key.pem" . $SSH_USER@$SSH_HOST:/home/$SSH_USER/Agentic_HR_Survey_tool
+
+          echo "Running docker-compose on EC2..."
+          ssh -o StrictHostKeyChecking=no -i private_key.pem $SSH_USER@$SSH_HOST << EOF
+            cd Agentic_HR_Survey_tool
+            docker-compose down
+            docker-compose build
+            docker-compose up -d
+          EOF
