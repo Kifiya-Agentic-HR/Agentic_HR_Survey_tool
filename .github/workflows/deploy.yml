@@ -7,13 +7,17 @@ on:
 env:
   SSH_USER: ${{ secrets.SSH_USER }}
   SSH_HOST: ${{ secrets.EC2_HOST }}
-  FRONTEND_PORT: 8088  # Changed from 3000 to 8088
+  FRONTEND_PORT: 8088
   BACKEND_PORT: 7075
   POSTGRES_PORT: 5433
   POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
   POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
   POSTGRES_DATABASE: hrsurvey
   JWT_SECRET: ${{ secrets.JWT_SECRET }}
+  GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+  GOOGLE_API_KEY2: ${{ secrets.GOOGLE_API_KEY2 }}
 
 jobs:
   deploy:
@@ -51,10 +55,10 @@ jobs:
               environment:
                 DATABASE_URL: postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DATABASE
                 SECRET_KEY: $JWT_SECRET
-                 GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-                 GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-                 GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-                 GOOGLE_API_KEY2: ${{ secrets.GOOGLE_API_KEY2 }}
+                GROQ_API_KEY: $GROQ_API_KEY
+                GEMINI_API_KEY: $GEMINI_API_KEY
+                GOOGLE_API_KEY: $GOOGLE_API_KEY
+                GOOGLE_API_KEY2: $GOOGLE_API_KEY2
                 PORT: 7075
               ports:
                 - "$BACKEND_PORT:7075"
