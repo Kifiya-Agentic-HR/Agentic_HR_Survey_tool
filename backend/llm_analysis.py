@@ -139,11 +139,6 @@ class LLMAnalyzer:
                 if len(translated_batch) != len(batch):
                     print(f"Warning: Batch {i+1} output length mismatch. Expected {len(batch)}, got {len(translated_batch)}. "
                           f"Raw output: {raw_output}")
-                    # Depending on requirements, you might want to:
-                    # 1. Retry the batch.
-                    # 2. Log the discrepancy and fill with placeholders.
-                    # 3. Raise a specific error for inconsistent output.
-                    # For this example, we'll continue, but be aware of potential data integrity issues.
 
                 translated_all.extend(translated_batch)
                 
@@ -153,22 +148,12 @@ class LLMAnalyzer:
                 
             except json.JSONDecodeError as e:
                 print(f"ERROR: JSON Decoding Error in batch {i+1}: {e}")
-                print(f"Problematic raw output:\n{raw_output}")
-                # Re-raise the error as it indicates a serious parsing failure
                 raise
             except Exception as e:
                 print(f"ERROR: An unexpected error occurred in batch {i+1}: {e}")
-                print(f"Raw output (if any):\n{raw_output if 'raw_output' in locals() else 'N/A'}")
+             
                 # Re-raise for general API or network issues
-                raise
-
-        # Print the results for demonstration
-        print("\n--- Final Translation Results Summary ---")
-        for original, translated in zip(texts, translated_all):
-            # Ensure 'translated' is a string before printing, in case of partial failures
-            # where translated_all might not perfectly align if errors were suppressed.
-            print(f"Original: {original}\nTranslated: {translated}\n")
-            
+                raise            
         
         return translated_all
     
@@ -265,11 +250,8 @@ class LLMAnalyzer:
         """
         
         try:
-            print(f"Input prompt for extract_themes (length: {len(prompt)} chars): {prompt[:500]}...")  # Log partial prompt
             response = await self._call_llm(prompt)
             response = clean_llm_output(response)
-            
-            print(f"Raw extract_themes response (length: {len(response)} chars): {response}")  # Log full response
             if not response.strip():
                 return {"themes": [], "summary": "Empty response from LLM"}
             # Attempt to parse JSON, handling potential multiple JSON objects
@@ -286,7 +268,6 @@ class LLMAnalyzer:
                     if start != -1 and end != -1:
                         json_str = response[start:end]
                         result = json.loads(json_str)
-                        print(f"Extracted valid JSON: {json_str}")
                         return result
                     else:
                         return {"themes": [], "summary": f"Could not extract valid JSON: {str(e)}"}
@@ -352,7 +333,6 @@ class LLMAnalyzer:
                     if start != -1 and end != -1:
                         json_str = response[start:end]
                         result = json.loads(json_str)
-                        print(f"Extracted valid JSON: {json_str}")
                         return result
                     else:
                         return {"emotions": [], "summary": f"Could not extract valid JSON: {str(e)}"}
@@ -415,7 +395,6 @@ class LLMAnalyzer:
                     if start != -1 and end != -1:
                         json_str = response[start:end]
                         result = json.loads(json_str)
-                        print(f"Extracted valid JSON: {json_str}")
                         return result
                     else:
                         return {"insights": [], "summary": f"Could not extract valid JSON: {str(e)}"}

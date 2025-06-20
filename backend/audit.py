@@ -6,12 +6,13 @@ from datetime import datetime
 def log_event(user_id, event_type, event_details, ip_address):
     db = SessionLocal()
     db.execute(
-        text("INSERT INTO event_logs (user_id, event_type, event_details, ip_address) VALUES (:user_id, :event_type, :event_details, :ip_address)"),
+        text("INSERT INTO event_logs (user_id, event_type, event_details, ip_address, timestamp) VALUES (:user_id, :event_type, :event_details, :ip_address, :timestamp)"),
         {
             "user_id": user_id,
             "event_type": event_type,
             "event_details": json.dumps(event_details),
-            "ip_address": ip_address
+            "ip_address": ip_address,
+            "timestamp": datetime.utcnow()
         }
     )
     db.commit()

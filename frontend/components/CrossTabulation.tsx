@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,7 +11,7 @@ import { authService } from '@/lib/auth';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-const API_BASE_URL = 'http://localhost:8000';
+
 
 interface CrossTabData {
   question1: string;
@@ -55,12 +55,6 @@ export default function CrossTabulation({ datasetInfo }: CrossTabulationProps) {
       setQuestion2(mcQuestions[1]);
     }
   }, [mcQuestions]);
-
-  useEffect(() => {
-    if (question1 && question2 && question1 !== question2) {
-      fetchCrossTabulation();
-    }
-  }, [question1, question2]);
 
   const exportToPDF = async () => {
   if (!contentRef.current) return;
@@ -118,22 +112,17 @@ export default function CrossTabulation({ datasetInfo }: CrossTabulationProps) {
   }
 };
 
-  const fetchCrossTabulation = async () => {
+  const fetchCrossTabulation = useCallback(async () => {
     if (!question1 || !question2 || question1 === question2) return;
-
     try {
       setLoading(true);
       setError(null);
-      
       const response = await authService.makeAuthenticatedRequest(`/cross-tabulation/${encodeURIComponent(question1)}/${encodeURIComponent(question2)}`, {
-            method: 'GET',
-          });
-      
-      
+        method: 'GET',
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch cross-tabulation data');
       }
-      
       const data = await response.json();
       setCrossTabData(data);
     } catch (err) {
@@ -142,12 +131,11 @@ export default function CrossTabulation({ datasetInfo }: CrossTabulationProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [question1, question2]);
 
   useEffect(() => {
-  fetchCrossTabulation();
-}, []);
-
+    fetchCrossTabulation();
+  }, [fetchCrossTabulation]);
 
   const calculateRowTotal = (row: any) => {
     return crossTabData?.columns.reduce((sum, col) => {

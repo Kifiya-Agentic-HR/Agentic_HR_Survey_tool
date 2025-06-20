@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, BarChart3, FileText, TrendingUp, Database,ArrowLeft, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,8 @@ import LLMAnalysis from '@/components/LLMAnalysis';
 import SummaryDashboard from '@/components/SummaryDashboard';
 import CrossTabulation from '@/components/CrossTabulation';
 import Link from 'next/link';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface DatasetInfo {
   filename: string;
@@ -29,8 +31,27 @@ interface DatasetInfo {
 export default function SurveyDashboardPage() {
   const [datasetInfo, setDatasetInfo] = useState<DatasetInfo | null>(null);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false)
   const [activeTab, setActiveTab] = useState('upload');
   const router = useRouter();
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const mcRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
+  const crossTabRef = useRef<HTMLDivElement>(null);
+  const aiSentimentRef = useRef<HTMLDivElement>(null);
+  const aiThemesRef = useRef<HTMLDivElement>(null);
+  const aiEmotionsRef = useRef<HTMLDivElement>(null);
+  const aiInsightsRef = useRef<HTMLDivElement>(null);
+
+  // Separate refs for export-only (hidden) components
+  const summaryExportRef = useRef<HTMLDivElement>(null);
+  const mcExportRef = useRef<HTMLDivElement>(null);
+  const textExportRef = useRef<HTMLDivElement>(null);
+  const crossTabExportRef = useRef<HTMLDivElement>(null);
+  const aiSentimentExportRef = useRef<HTMLDivElement>(null);
+  const aiThemesExportRef = useRef<HTMLDivElement>(null);
+  const aiEmotionsExportRef = useRef<HTMLDivElement>(null);
+  const aiInsightsExportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem('isAuthenticated');
@@ -43,6 +64,57 @@ export default function SurveyDashboardPage() {
     setDatasetInfo(info);
     setActiveTab('summary');
   };
+  
+
+  const exportAllReports = async () => {
+    setExporting(true); // Show all hidden sections
+  
+    // Wait for the DOM to update and render hidden sections
+    await new Promise(resolve => setTimeout(resolve, 300)); // 300ms is usually enough
+  
+    const pdf = new jsPDF('p', 'pt', 'a4');
+    const width = pdf.internal.pageSize.getWidth();
+  
+    // Use only the export refs for export
+    const refs = [
+      { ref: summaryExportRef, title: 'Summary Dashboard' },
+      { ref: mcExportRef, title: 'Multiple Choice Analysis' },
+      { ref: textExportRef, title: 'Text Analysis' },
+      { ref: aiSentimentExportRef, title: 'AI Analysis - Sentiment' },
+      { ref: aiThemesExportRef, title: 'AI Analysis - Themes' },
+      { ref: aiEmotionsExportRef, title: 'AI Analysis - Emotions' },
+      { ref: aiInsightsExportRef, title: 'AI Analysis - Insights' },
+      { ref: crossTabExportRef, title: 'Cross Tabulation' },
+    ];
+  
+    let firstPage = true;
+  
+    for (const { ref, title } of refs) {
+      if (ref.current) {
+        const canvas = await html2canvas(ref.current, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          scrollY: -window.scrollY,
+        });
+  
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = width - 40;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  
+        if (!firstPage) pdf.addPage();
+        firstPage = false;
+  
+        pdf.setFontSize(18);
+        pdf.text(title, width / 2, 40, { align: 'center' });
+        pdf.addImage(imgData, 'PNG', 20, 60, imgWidth, imgHeight);
+      }
+    }
+  
+    pdf.save('Survey-Analysis-Full-Report.pdf');
+    setExporting(false); // Hide sections again
+  };
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -75,6 +147,9 @@ export default function SurveyDashboardPage() {
                     {datasetInfo.total_responses} responses • {datasetInfo.total_questions} questions
                   </p>
                 </div>
+                <Button variant="outline" size="sm" onClick={exportAllReports}>
+                  Export All Reports
+                </Button>
               </div>
             )}
           </div>
@@ -180,24 +255,47 @@ export default function SurveyDashboardPage() {
           </TabsContent>
 
           <TabsContent value="summary">
-            {datasetInfo && <SummaryDashboard />}
+            {datasetInfo && <div ref={summaryRef}><SummaryDashboard /></div>}
           </TabsContent>
 
           <TabsContent value="multiple-choice">
-            {datasetInfo && <MultipleChoiceAnalysis />}
+            {datasetInfo && <div ref={mcRef}><MultipleChoiceAnalysis /></div>}
           </TabsContent>
 
           <TabsContent value="text-analysis">
-            {datasetInfo && <TextAnalysis />}
+            {datasetInfo && <div ref={textRef}><TextAnalysis /></div>}
           </TabsContent>
 
           <TabsContent value="llm-analysis">
-            {datasetInfo && <LLMAnalysis datasetInfo={datasetInfo} />}
+            {datasetInfo && <div ref={aiSentimentRef}><LLMAnalysis
+              datasetInfo={datasetInfo}
+              sentimentExportRef={aiSentimentRef}
+              themesExportRef={aiThemesRef}
+              emotionsExportRef={aiEmotionsRef}
+              insightsExportRef={aiInsightsRef}
+              exportMode={true}
+            /></div>}
           </TabsContent>
 
           <TabsContent value="cross-tab">
-            {datasetInfo && <CrossTabulation datasetInfo={datasetInfo} />}
+            {datasetInfo && <div ref={crossTabRef}><CrossTabulation datasetInfo={datasetInfo} /></div>}
           </TabsContent>
+
+          {/* Hidden containers for export (always rendered, but hidden) */}
+          <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '210mm', background: 'white' }}>
+            {datasetInfo && <div ref={summaryExportRef}><SummaryDashboard /></div>}
+            {datasetInfo && <div ref={mcExportRef}><MultipleChoiceAnalysis /></div>}
+            {datasetInfo && <div ref={textExportRef}><TextAnalysis /></div>}
+            {datasetInfo && <LLMAnalysis
+              datasetInfo={datasetInfo}
+              sentimentExportRef={aiSentimentExportRef}
+              themesExportRef={aiThemesExportRef}
+              emotionsExportRef={aiEmotionsExportRef}
+              insightsExportRef={aiInsightsExportRef}
+              exportMode={true}
+            />}
+            {datasetInfo && <div ref={crossTabExportRef}><CrossTabulation datasetInfo={datasetInfo} /></div>}
+          </div>
         </Tabs>
       </main>
     </div>

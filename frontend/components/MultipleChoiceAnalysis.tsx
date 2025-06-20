@@ -33,7 +33,7 @@ import {
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { authService } from '@/lib/auth';
-const API_BASE_URL = 'http://localhost:8000';
+
 
 interface ChartData {
   label: string;

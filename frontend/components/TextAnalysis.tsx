@@ -32,7 +32,7 @@ import {
 import { authService } from '@/lib/auth';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-const API_BASE_URL = 'http://localhost:8000';
+
 
 interface WordData {
   word: string;

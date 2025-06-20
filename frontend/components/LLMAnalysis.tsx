@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -43,7 +43,6 @@ import jsPDF from 'jspdf';
 
 import { authService } from '@/lib/auth';
 
-const API_BASE_URL = 'http://localhost:8000';
 
 interface SentimentData {
   sentiments: Array<{
@@ -111,6 +110,11 @@ interface DatasetInfo {
 
 interface LLMAnalysisProps {
   datasetInfo: DatasetInfo;
+  sentimentExportRef?: React.RefObject<HTMLDivElement>;
+  themesExportRef?: React.RefObject<HTMLDivElement>;
+  emotionsExportRef?: React.RefObject<HTMLDivElement>;
+  insightsExportRef?: React.RefObject<HTMLDivElement>;
+  exportMode?: boolean;
 }
 
 const EMOTION_COLORS = {
@@ -126,7 +130,25 @@ const EMOTION_COLORS = {
 
 const SENTIMENT_COLORS = ['#10B981', '#6B7280', '#EF4444'];
 
-export default function LLMAnalysis({ datasetInfo }: LLMAnalysisProps) {
+const LLMAnalysis = forwardRef(function LLMAnalysis({ datasetInfo, sentimentExportRef, themesExportRef, emotionsExportRef, insightsExportRef, exportMode }: LLMAnalysisProps, ref) {
+  // Use provided export refs if present, otherwise use internal refs
+  const internalSentimentRef = useRef<HTMLDivElement>(null);
+  const internalThemesRef = useRef<HTMLDivElement>(null);
+  const internalEmotionsRef = useRef<HTMLDivElement>(null);
+  const internalInsightsRef = useRef<HTMLDivElement>(null);
+  const sentimentRef = sentimentExportRef || internalSentimentRef;
+  const themeRef = themesExportRef || internalThemesRef;
+  const emotionRef = emotionsExportRef || internalEmotionsRef;
+  const insightsRef = insightsExportRef || internalInsightsRef;
+
+  // Expose refs to parent for export (must be unconditional and before any return)
+  useImperativeHandle(ref, () => ({
+    sentimentRef,
+    themeRef,
+    emotionRef,
+    insightsRef,
+  }), [sentimentRef, themeRef, emotionRef, insightsRef]);
+
   const [analysisData, setAnalysisData] = useState<LLMAnalysisData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -142,43 +164,31 @@ export default function LLMAnalysis({ datasetInfo }: LLMAnalysisProps) {
     }
   }, [textQuestions]);
 
-  useEffect(() => {
-    if (selectedQuestion) {
-      fetchLLMAnalysis();
-    }
-  }, [selectedQuestion]);
-
-  const fetchLLMAnalysis = async () => {
+  const fetchLLMAnalysis = useCallback(async () => {
     if (!selectedQuestion) return;
-
     try {
       setLoading(true);
       setError(null);
-
       const response = await authService.makeAuthenticatedRequest(
         `/llm-analysis/${encodeURIComponent(selectedQuestion)}`
       );
-
       if (!response.ok) {
         throw new Error(`Failed to fetch LLM analysis: ${response.statusText}`);
       }
-
       const data = await response.json();
-      console.log('Fetched LLM analysis data:', data);
       setAnalysisData(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      console.error('Error fetching LLM analysis:', errorMessage);
       setError(errorMessage);
       setAnalysisData(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedQuestion]);
 
   useEffect(() => {
-  fetchLLMAnalysis();
-  }, []);
+    fetchLLMAnalysis();
+  }, [fetchLLMAnalysis]);
 
   const exportToPDF = async () => {
     if (!tabContentRef.current) {
@@ -227,7 +237,6 @@ export default function LLMAnalysis({ datasetInfo }: LLMAnalysisProps) {
       alert('Failed to export to PDF. Please try again.');
     }
   };
-
 
   const renderSentimentAnalysis = () => {
     if (!analysisData?.sentiment_analysis) {
@@ -704,7 +713,6 @@ export default function LLMAnalysis({ datasetInfo }: LLMAnalysisProps) {
             <Download className="h-4 w-4 mr-2" />
             Export PDF
           </Button>
-         
         </div>
       </div>
 
@@ -781,6 +789,16 @@ export default function LLMAnalysis({ datasetInfo }: LLMAnalysisProps) {
           </Tabs>
         </div>
       )}
+
+      {/* Hidden containers for export (always rendered, but hidden) */}
+      <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '210mm', background: 'white' }}>
+        <div ref={sentimentRef}>{renderSentimentAnalysis()}</div>
+        <div ref={themeRef}>{renderThemeAnalysis()}</div>
+        <div ref={emotionRef}>{renderEmotionAnalysis()}</div>
+        <div ref={insightsRef}>{renderInsights()}</div>
+      </div>
     </div>
   );
-}
+});
+
+export default LLMAnalysis;

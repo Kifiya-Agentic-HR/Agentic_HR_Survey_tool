@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -27,21 +27,21 @@ export default function AuditLogsPage() {
     }
   }, [router]);
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     const token = localStorage.getItem('access_token');
     let url = activeTab === 0 ? '/admin/audit/event-logs' : '/admin/audit/access-logs';
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
     if (params.toString()) url += `?${params.toString()}`;
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${url}`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${url}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     setLogs(res.ok ? await res.json() : []);
     setLoading(false);
-  };
+  }, [activeTab, filters]);
 
-  useEffect(() => { fetchLogs(); }, [activeTab]);
+  useEffect(() => { fetchLogs(); }, [activeTab, fetchLogs]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
