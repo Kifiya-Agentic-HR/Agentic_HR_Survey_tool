@@ -2,7 +2,7 @@ name: CI/CD for Agentic HR Survey Tool (EC2 + Docker Compose)
 
 on:
   push:
-    branches: [ main ]
+    branches: [ development ]
 
 env:
   SSH_USER: ${{ secrets.SSH_USER }}
