@@ -160,7 +160,7 @@ export default function AdminUsersPage() {
         </div>
       </div>
       <div className="flex-1 flex flex-col items-center justify-center">
-        <div className="w-full max-w-4xl bg-white rounded-xl shadow-lg p-10 mt-8 mb-12">
+        <div className="w-full max-w-6xl bg-white rounded-xl shadow-lg p-10 mt-8 mb-12">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-3xl font-bold text-gray-900">User Management</h2>
             <div className="flex gap-4">
