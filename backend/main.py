@@ -28,8 +28,6 @@ import pandas as pd
 from fuzzywuzzy import process
 from audit import log_event, log_access
 
-db_url = os.getenv("DATABASE_URL")
-print(db_url)
 
 # Define the correct headers
 English_headers = [

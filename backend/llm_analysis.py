@@ -375,7 +375,7 @@ class LLMAnalyzer:
         Provide:
         1. Key insights (4-6 main findings)
         2. Actionable recommendations (4-6 specific actions)
-        3. Areas of concern with explicit Complaints (clear, direct expressions of dissatisfaction or frustration)(4-6 specific concerns)(if any)
+        3. Areas of concern with explicit complaints (clear, direct expressions of dissatisfaction or frustration)(4-6 specific concerns)
         4. Positive highlights (4-6 specific highlights)
         
         Responses:

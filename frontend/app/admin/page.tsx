@@ -142,7 +142,7 @@ export default function AdminPage() {
             <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors">Logout</button>
           </div>
           <form onSubmit={handleAddUser} className="space-y-6 bg-white p-8 rounded-xl shadow-lg border">
-            <h2 className="text-3xl font-bold mb-4 text-gray-900">Create User</h2>
+            <h2 className="text-4xl font-bold mb-4 text-gray-900">Create User</h2>
             {error && <div className="text-red-600">{error}</div>}
             {success && <div className="text-green-600">{success}</div>}
             <Input name="first_name" placeholder="Enter first name" value={form.first_name} onChange={handleInputChange} required />
